@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pickle
 from typing import List, Optional, Tuple, Sequence
 
 import numpy as np
@@ -26,7 +27,9 @@ class LGBMRegressor(BaseEstimator):
 		num_iterations: int = 100,
 		learning_rate: float = 0.1,
 		max_depth: int = 6,
+		num_leaves: int = 31,
 		min_data_in_leaf: int = 20,
+		min_sum_hessian_in_leaf: float = 0.0,
 		lambda_l2: float = 0.0,
 		min_gain_to_split: float = 0.0,
 		subsample: float = 1.0,
@@ -42,6 +45,7 @@ class LGBMRegressor(BaseEstimator):
 		n_bins: int = 255,
 		monotone_constraints: Optional[Sequence[int]] = None,
 		categorical_features: Optional[Sequence[int]] = None,
+		default_left: bool = True,
 		eval_metric: str = "mse",
 		verbose_eval: Optional[int] = None,
 	) -> None:
@@ -49,7 +53,9 @@ class LGBMRegressor(BaseEstimator):
 			num_iterations=num_iterations,
 			learning_rate=learning_rate,
 			max_depth=max_depth,
+			num_leaves=num_leaves,
 			min_data_in_leaf=min_data_in_leaf,
+			min_sum_hessian_in_leaf=min_sum_hessian_in_leaf,
 			lambda_l2=lambda_l2,
 			min_gain_to_split=min_gain_to_split,
 			subsample=subsample,
@@ -71,10 +77,12 @@ class LGBMRegressor(BaseEstimator):
 		self.n_bins = n_bins
 		self.monotone_constraints = np.array(monotone_constraints) if monotone_constraints is not None else None
 		self.categorical_features = set(categorical_features) if categorical_features is not None else set()
+		self.default_left = default_left
 		self.eval_metric = eval_metric
 		self.verbose_eval = verbose_eval
 		self.eval_history_: list[tuple[int, float]] = []
 		self.best_iteration_: Optional[int] = None
+		self.split_importances_: Optional[np.ndarray] = None
 
 	# ------------------------------------------------------------------
 	def fit(self, X: np.ndarray, y: np.ndarray, eval_set: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> "LGBMRegressor":
@@ -131,7 +139,9 @@ class LGBMRegressor(BaseEstimator):
 
 			tree = DecisionTree(
 				max_depth=self.params.max_depth,
+					num_leaves=self.params.num_leaves,
 				min_data_in_leaf=self.params.min_data_in_leaf,
+					min_sum_hessian_in_leaf=self.params.min_sum_hessian_in_leaf,
 				lambda_l2=self.params.lambda_l2,
 				min_gain_to_split=self.params.min_gain_to_split,
 				colsample=self.params.colsample,
@@ -139,6 +149,7 @@ class LGBMRegressor(BaseEstimator):
 				use_histogram=self.use_histogram,
 				monotone_constraints=self.monotone_constraints,
 				categorical_features=self.categorical_features,
+					default_left=self.default_left,
 			)
 			tree.fit(X_sub, grad_sub, hess_sub)
 			self.trees_.append(tree)
@@ -196,16 +207,71 @@ class LGBMRegressor(BaseEstimator):
 	def _compute_feature_importances(self) -> None:
 		if self.n_features_ is None:
 			self.feature_importances_ = None
+			self.split_importances_ = None
 			return
 		imp = np.zeros(self.n_features_)
+		imp_split = np.zeros(self.n_features_)
 		for tree in self.trees_:
 			if tree.feature_importances_ is not None:
 				imp += tree.feature_importances_
+			if tree.split_counts_ is not None:
+				imp_split += tree.split_counts_
 		# Normalise to sum to 1
 		total = imp.sum()
 		if total > 0:
 			imp /= total
 		self.feature_importances_ = imp
+		total_split = imp_split.sum()
+		if total_split > 0:
+			imp_split /= total_split
+		self.split_importances_ = imp_split
+
+	def save_model(self, path: str) -> None:
+		state = {
+			"params": self.params,
+			"trees": self.trees_,
+			"init_prediction": self.init_prediction_,
+			"n_features": self.n_features_,
+			"feature_importances": self.feature_importances_,
+			"split_importances": self.split_importances_,
+			"use_histogram": self.use_histogram,
+			"binner": getattr(self, "_binner", None),
+			"categorical_features": self.categorical_features,
+			"monotone_constraints": self.monotone_constraints,
+		}
+		with open(path, "wb") as f:
+			pickle.dump(state, f)
+
+	@classmethod
+	def load_model(cls, path: str) -> "LGBMRegressor":
+		with open(path, "rb") as f:
+			state = pickle.load(f)
+		model = cls(
+			num_iterations=state["params"].num_iterations,
+			learning_rate=state["params"].learning_rate,
+			max_depth=state["params"].max_depth,
+			num_leaves=state["params"].num_leaves,
+			min_data_in_leaf=state["params"].min_data_in_leaf,
+			min_sum_hessian_in_leaf=state["params"].min_sum_hessian_in_leaf,
+			lambda_l2=state["params"].lambda_l2,
+			min_gain_to_split=state["params"].min_gain_to_split,
+			subsample=state["params"].subsample,
+			colsample=state["params"].colsample,
+			random_state=state["params"].random_state,
+			use_histogram=state["use_histogram"],
+			categorical_features=state["categorical_features"],
+			monotone_constraints=state["monotone_constraints"],
+		)
+		model.params = state["params"]
+		model.trees_ = state["trees"]
+		model.init_prediction_ = state["init_prediction"]
+		model.n_features_ = state["n_features"]
+		model.feature_importances_ = state["feature_importances"]
+		model.split_importances_ = state["split_importances"]
+		model._binner = state.get("binner")
+		model.best_iteration_ = len(model.trees_) - 1 if model.trees_ else None
+		model.eval_history_ = []
+		return model
 
 	def _eval_metric(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
 		if self.eval_metric == "mse":

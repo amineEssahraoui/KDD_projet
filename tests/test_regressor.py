@@ -1,3 +1,6 @@
+import os
+import tempfile
+
 import numpy as np
 
 from lightgbm import LGBMRegressor
@@ -72,6 +75,8 @@ def test_goss_training_runs_and_importances_sum_to_one():
 	model.fit(X, y)
 	assert model.feature_importances_ is not None
 	assert np.isclose(model.feature_importances_.sum(), 1.0)
+	assert model.split_importances_ is not None
+	assert np.isclose(model.split_importances_.sum(), 1.0)
 
 
 def test_eval_metric_mae_and_history():
@@ -138,3 +143,37 @@ def test_categorical_feature_supports_splits():
 	probes = np.array([[0, 0.0], [1, 0.0], [2, 0.0]])
 	preds = model.predict(probes)
 	assert preds[0] < preds[1] < preds[2]
+
+
+def test_model_save_and_load_roundtrip():
+	X, y = _synthetic_regression()
+	model = LGBMRegressor(num_iterations=15, learning_rate=0.15, random_state=11, use_histogram=True)
+	model.fit(X, y)
+	with tempfile.NamedTemporaryFile(delete=False) as tmp:
+		path = tmp.name
+	try:
+		model.save_model(path)
+		loaded = LGBMRegressor.load_model(path)
+		preds_orig = model.predict(X[:20])
+		preds_loaded = loaded.predict(X[:20])
+		assert np.allclose(preds_orig, preds_loaded)
+	finally:
+		if os.path.exists(path):
+			os.remove(path)
+
+
+def test_nan_routing_and_min_hessian():
+	rng = np.random.default_rng(4)
+	X = rng.normal(size=(120, 2))
+	X[:30, 0] = np.nan
+	y = 1.5 * np.nan_to_num(X[:, 0], nan=0.2) - 0.7 * X[:, 1] + rng.normal(scale=0.05, size=120)
+	model = LGBMRegressor(
+		num_iterations=25,
+		learning_rate=0.1,
+		min_sum_hessian_in_leaf=1e-3,
+		default_left=True,
+		random_state=8,
+	)
+	model.fit(X, y)
+	preds = model.predict(X[:10])
+	assert np.isfinite(preds).all()

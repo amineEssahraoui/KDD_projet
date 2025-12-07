@@ -52,7 +52,7 @@ def main():
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    # Use scaled features for linear models; tree/boosting on raw. We also try scaled features for our LGBM to stabilise wide-range data.
+    # Use scaled features for linear models; tree/boosting (including our LGBM) on raw for small-feature problems.
 
     # Use scaled data for linear models, raw for tree/boosting models (including our LGBM)
     models = [
@@ -80,19 +80,19 @@ def main():
         (
             "Light GBM dialna",
             LGBMRegressor(
-                num_iterations=800,
-                learning_rate=0.05,
-                max_depth=10,
-                min_data_in_leaf=5,
-                subsample=0.8,
-                colsample=0.8,
-                lambda_l2=1.0,
+                num_iterations=400,
+                learning_rate=0.1,
+                max_depth=6,
+                min_data_in_leaf=2,
+                subsample=1.0,
+                colsample=1.0,
+                lambda_l2=0.0,
                 use_histogram=True,
-                n_bins=128,
+                n_bins=64,
                 random_state=args.seed,
             ),
-            X_train_scaled,
-            X_test_scaled,
+            X_train,
+            X_test,
         ),
     ]
 
