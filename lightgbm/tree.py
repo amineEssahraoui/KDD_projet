@@ -1,0 +1,285 @@
+"""Leaf-wise regression tree used by the simplified LightGBM booster."""
+
+from __future__ import annotations
+
+import heapq
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+import numpy as np
+
+
+@dataclass
+class Node:
+	feature_index: Optional[int] = None
+	threshold: Optional[float] = None
+	left: Optional["Node"] = None
+	right: Optional["Node"] = None
+	value: float = 0.0
+	is_leaf: bool = True
+
+	def predict_one(self, x: np.ndarray) -> float:
+		if self.is_leaf or self.feature_index is None or self.threshold is None:
+			return self.value
+		if x[self.feature_index] <= self.threshold:
+			return self.left.predict_one(x)  # type: ignore[union-attr]
+		return self.right.predict_one(x)  # type: ignore[union-attr]
+
+
+class DecisionTree:
+	"""Regression tree grown leaf-wise using second-order gain."""
+
+	def __init__(
+		self,
+		max_depth: int,
+		min_data_in_leaf: int,
+		lambda_l2: float,
+		min_gain_to_split: float,
+		colsample: float = 1.0,
+		random_state: Optional[int] = None,
+		use_histogram: bool = False,
+		monotone_constraints: Optional[np.ndarray] = None,
+		categorical_features: Optional[set[int]] = None,
+	) -> None:
+		self.max_depth = max_depth
+		self.min_data_in_leaf = min_data_in_leaf
+		self.lambda_l2 = lambda_l2
+		self.min_gain_to_split = min_gain_to_split
+		self.colsample = colsample
+		self.random_state = random_state
+		self.use_histogram = use_histogram
+		self.monotone_constraints = monotone_constraints
+		self.categorical_features = categorical_features or set()
+		self.root = Node()
+		self.n_features_ = None
+		self.feature_importances_ = None
+
+	# ------------------------------------------------------------------
+	def fit(self, X: np.ndarray, gradients: np.ndarray, hessians: np.ndarray) -> "DecisionTree":
+		X = np.asarray(X, dtype=float)
+		gradients = np.asarray(gradients, dtype=float)
+		hessians = np.asarray(hessians, dtype=float)
+		self.n_features_ = X.shape[1]
+
+		# Priority queue holds (-gain, depth, Node, indices)
+		indices = np.arange(len(X))
+		self.root.value = self._leaf_value(gradients, hessians, indices)
+		pq = []
+		root_gain, root_split = self._best_split(X, gradients, hessians, indices)
+		heapq.heappush(pq, (-root_gain, 0, self.root, indices, root_split))
+		gain_per_feature = np.zeros(self.n_features_)
+
+		while pq:
+			neg_gain, depth, node, node_indices, split = heapq.heappop(pq)
+			gain = -neg_gain
+			if gain <= self.min_gain_to_split or split is None or depth >= self.max_depth:
+				node.is_leaf = True
+				continue
+
+			(feat_idx, threshold, left_idx, right_idx) = split
+			node.feature_index = feat_idx
+			node.threshold = threshold
+			node.is_leaf = False
+			gain_per_feature[feat_idx] += gain
+
+			left_node = Node()
+			right_node = Node()
+			left_node.value = self._leaf_value(gradients, hessians, left_idx)
+			right_node.value = self._leaf_value(gradients, hessians, right_idx)
+			node.left = left_node
+			node.right = right_node
+
+			if depth + 1 < self.max_depth:
+				left_gain, left_split = self._best_split(X, gradients, hessians, left_idx)
+				if left_split is not None:
+					heapq.heappush(pq, (-left_gain, depth + 1, left_node, left_idx, left_split))
+				right_gain, right_split = self._best_split(X, gradients, hessians, right_idx)
+				if right_split is not None:
+					heapq.heappush(pq, (-right_gain, depth + 1, right_node, right_idx, right_split))
+
+		self.feature_importances_ = gain_per_feature
+		return self
+
+	# ------------------------------------------------------------------
+	def _leaf_value(self, gradients: np.ndarray, hessians: np.ndarray, indices: np.ndarray) -> float:
+		G = gradients[indices].sum()
+		H = hessians[indices].sum()
+		return -G / (H + self.lambda_l2)
+
+	def _gain(self, G_left: float, H_left: float, G_right: float, H_right: float, G_total: float, H_total: float) -> float:
+		left = (G_left ** 2) / (H_left + self.lambda_l2)
+		right = (G_right ** 2) / (H_right + self.lambda_l2)
+		parent = (G_total ** 2) / (H_total + self.lambda_l2)
+		return left + right - parent
+
+	def _best_split(
+		self,
+		X: np.ndarray,
+		gradients: np.ndarray,
+		hessians: np.ndarray,
+		indices: np.ndarray,
+	) -> Tuple[float, Optional[Tuple[int, float, np.ndarray, np.ndarray]]]:
+		if len(indices) < 2 * self.min_data_in_leaf:
+			return 0.0, None
+
+		n_features = X.shape[1]
+		rng = np.random.default_rng(self.random_state)
+		feature_indices = np.arange(n_features)
+		if self.colsample < 1.0:
+			size = max(1, int(n_features * self.colsample))
+			feature_indices = np.sort(rng.choice(feature_indices, size=size, replace=False))
+
+		best_gain = 0.0
+		best_split = None
+		G_total = gradients[indices].sum()
+		H_total = hessians[indices].sum()
+
+		for feat_idx in feature_indices:
+			if feat_idx in self.categorical_features:
+				gain, split = self._best_split_categorical(X, gradients, hessians, indices, feat_idx, G_total, H_total)
+			else:
+				gain, split = self._best_split_numeric(X, gradients, hessians, indices, feat_idx, G_total, H_total)
+			if gain > best_gain:
+				best_gain = gain
+				best_split = split
+
+		return best_gain, best_split
+
+	# ------------------------------------------------------------------
+	def predict(self, X: np.ndarray) -> np.ndarray:
+		X = np.asarray(X, dtype=float)
+		preds = np.empty(len(X))
+		for i, row in enumerate(X):
+			preds[i] = self.root.predict_one(row)
+		return preds
+
+	# ------------------------------------------------------------------
+	def _best_split_numeric(
+		self,
+		X: np.ndarray,
+		gradients: np.ndarray,
+		hessians: np.ndarray,
+		indices: np.ndarray,
+		feat_idx: int,
+		G_total: float,
+		H_total: float,
+	) -> Tuple[float, Optional[Tuple[int, float, np.ndarray, np.ndarray]]]:
+		values = X[indices, feat_idx]
+		order = np.argsort(values)
+		values_sorted = values[order]
+		g_sorted = gradients[indices][order]
+		h_sorted = hessians[indices][order]
+
+		# Skip constant feature
+		if values_sorted[0] == values_sorted[-1]:
+			return 0.0, None
+
+		G_prefix = np.cumsum(g_sorted)
+		H_prefix = np.cumsum(h_sorted)
+
+		best_gain = 0.0
+		best_split = None
+		for i in range(len(values_sorted) - 1):
+			left_count = i + 1
+			right_count = len(values_sorted) - left_count
+			if left_count < self.min_data_in_leaf or right_count < self.min_data_in_leaf:
+				continue
+
+			if values_sorted[i] == values_sorted[i + 1]:
+				continue
+
+			G_left = G_prefix[i]
+			H_left = H_prefix[i]
+			G_right = G_total - G_left
+			H_right = H_total - H_left
+
+			if not self._monotone_ok(feat_idx, G_left, H_left, G_right, H_right):
+				continue
+
+			gain = self._gain(G_left, H_left, G_right, H_right, G_total, H_total)
+			if gain > best_gain:
+				threshold = (values_sorted[i] + values_sorted[i + 1]) / 2.0
+				left_indices = indices[order[: left_count]]
+				right_indices = indices[order[left_count:]]
+				best_gain = gain
+				best_split = (feat_idx, threshold, left_indices, right_indices)
+
+		return best_gain, best_split
+
+	def _best_split_categorical(
+		self,
+		X: np.ndarray,
+		gradients: np.ndarray,
+		hessians: np.ndarray,
+		indices: np.ndarray,
+		feat_idx: int,
+		G_total: float,
+		H_total: float,
+	) -> Tuple[float, Optional[Tuple[int, float, np.ndarray, np.ndarray]]]:
+		values = X[indices, feat_idx].astype(int)
+		unique_cats, inv = np.unique(values, return_inverse=True)
+		if len(unique_cats) <= 1:
+			return 0.0, None
+
+		G_cat = np.zeros(len(unique_cats))
+		H_cat = np.zeros(len(unique_cats))
+		for k in range(len(unique_cats)):
+			mask = inv == k
+			G_cat[k] = gradients[indices][mask].sum()
+			H_cat[k] = hessians[indices][mask].sum()
+
+		# Order categories by leaf value estimate (-G/H)
+		leaf_value_est = -G_cat / (H_cat + self.lambda_l2)
+		order_cats = np.argsort(leaf_value_est)
+		G_sorted = G_cat[order_cats]
+		H_sorted = H_cat[order_cats]
+		cats_sorted = unique_cats[order_cats]
+
+		G_prefix = np.cumsum(G_sorted)
+		H_prefix = np.cumsum(H_sorted)
+
+		best_gain = 0.0
+		best_split = None
+		for i in range(len(cats_sorted) - 1):
+			left_mask_inv = np.isin(inv, order_cats[: i + 1])
+			left_count = left_mask_inv.sum()
+			right_count = len(indices) - left_count
+			if left_count < self.min_data_in_leaf or right_count < self.min_data_in_leaf:
+				continue
+
+			G_left = G_prefix[i]
+			H_left = H_prefix[i]
+			G_right = G_total - G_left
+			H_right = H_total - H_left
+
+			if not self._monotone_ok(feat_idx, G_left, H_left, G_right, H_right):
+				continue
+
+			gain = self._gain(G_left, H_left, G_right, H_right, G_total, H_total)
+			if gain > best_gain:
+				# Use category ordering threshold encoded as mid between last left cat and first right cat
+				threshold = (cats_sorted[i] + cats_sorted[i + 1]) / 2.0
+				left_mask = np.isin(values, cats_sorted[: i + 1])
+				left_indices = indices[left_mask]
+				right_indices = indices[~left_mask]
+				best_gain = gain
+				best_split = (feat_idx, threshold, left_indices, right_indices)
+
+		return best_gain, best_split
+
+	def _monotone_ok(self, feat_idx: int, G_left: float, H_left: float, G_right: float, H_right: float) -> bool:
+		if self.monotone_constraints is None:
+			return True
+		if feat_idx >= len(self.monotone_constraints):
+			return True
+		constraint = self.monotone_constraints[feat_idx]
+		if constraint == 0:
+			return True
+		v_left = -G_left / (H_left + self.lambda_l2)
+		v_right = -G_right / (H_right + self.lambda_l2)
+		if constraint > 0 and v_left > v_right:
+			return False
+		if constraint < 0 and v_left < v_right:
+			return False
+		return True
+
