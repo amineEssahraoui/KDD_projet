@@ -61,3 +61,16 @@ class RMSELoss(LossFunction):
 		rmse = np.sqrt(np.mean((y_true - y_pred) ** 2))
 		return 1 / ((rmse+eps) * n) * (1 - ((y_pred - y_true) ** 2) / ((rmse+eps) ** 2 * n))
 	
+class HUBERLoss(LossFunction):
+	"""Huber loss with constant Hessian used by LightGBM for regression."""
+	
+	def __init__(self, delta: float = 1.0):
+		self.delta = delta
+	
+	def loss(self , y_true: np.ndarray, y_pred: np.ndarray) -> float:
+		residual = y_true - y_pred
+		is_small_error = np.abs(residual) <= self.delta
+		squared_loss = 0.5 * (residual ** 2)
+		linear_loss = self.delta * (np.abs(residual) - 0.5 * self.delta)
+		return float(np.sum(np.where(is_small_error, squared_loss, linear_loss)))
+	
