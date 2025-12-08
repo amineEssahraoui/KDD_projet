@@ -42,3 +42,9 @@ class MAELoss(LossFunction):
 	
 	def hessian ( self , y_true : np.ndarray , y_pred : np.ndarray ) -> np.ndarray :
 		return np.zeros_like(y_pred)
+	
+class RMSEloss(LossFunction): 
+	"""Root mean squared error with constant Hessian used by LightGBM for regression."""
+	
+	def loss(self , y_true: np.ndarray, y_pred: np.ndarray) -> float:
+		
