@@ -50,10 +50,13 @@ class RMSELoss(LossFunction):
 		return float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
 	
 	def gradient(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+		eps = 1e-15
+		rmse = np.sqrt(np.mean((y_true - y_pred) ** 2))
 		n = len(y_true)
-		return (y_pred - y_true) / (np.sqrt(np.mean((y_true - y_pred) ** 2)) * n)
+		return (y_pred - y_true) / ((rmse+eps)  * n)
 	
 	def hessian(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
 		n = len(y_true)
+		eps = 1e-15
 		rmse = np.sqrt(np.mean((y_true - y_pred) ** 2))
-		return (1 / (rmse * n)) * (1 - ((y_pred - y_true) ** 2) / (rmse ** 2))
+		return  1 / ((rmse+eps) * n) * (1 - ((y_pred - y_true) ** 2) / ((rmse+eps) ** 2 * n))
