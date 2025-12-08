@@ -35,7 +35,9 @@ class MSELoss(LossFunction):
 class MAELoss(LossFunction):
 	"""Mean absolute error with constant Hessian used by LightGBM for regression."""
 	def loss (self , y_true : np.ndarray , y_pred : np.ndarray ) -> float :
-		return float ( np . mean ( np . abs ( y_true - y_pred ) ) )	
+		return float ( np . sum ( np . abs ( y_true - y_pred ) ) )	
 	
 	def gradient ( self , y_true : np.ndarray , y_pred : np.ndarray ) -> np.ndarray :
 		return np . sign ( y_pred - y_true )
+	
+	
