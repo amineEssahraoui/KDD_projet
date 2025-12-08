@@ -22,7 +22,7 @@ class MSELoss(LossFunction):
 	"""Mean squared error with constant Hessian used by LightGBM for regression."""
 
 	def loss(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
-		return float(0.5 * np.mean((y_true - y_pred) ** 2))
+		return float(0.5 * np.sum((y_true - y_pred) ** 2))
 
 	def gradient(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
 		# First derivative wrt predictions
@@ -37,3 +37,5 @@ class MAELoss(LossFunction):
 	def loss (self , y_true : np.ndarray , y_pred : np.ndarray ) -> float :
 		return float ( np . mean ( np . abs ( y_true - y_pred ) ) )	
 	
+	def gradient ( self , y_true : np.ndarray , y_pred : np.ndarray ) -> np.ndarray :
+		return np . sign ( y_pred - y_true )
