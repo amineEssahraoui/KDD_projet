@@ -32,3 +32,7 @@ class MSELoss(LossFunction):
 		# Second derivative is constant for squared error.
 		return np.ones_like(y_pred)
 
+class MAELoss(LossFunction):
+	"""Mean absolute error with constant Hessian used by LightGBM for regression."""
+
+	
