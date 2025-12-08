@@ -60,3 +60,13 @@ class RMSELoss(LossFunction):
 		eps = 1e-15
 		rmse = np.sqrt(np.mean((y_true - y_pred) ** 2))
 		return  1 / ((rmse+eps) * n) * (1 - ((y_pred - y_true) ** 2) / ((rmse+eps) ** 2 * n))
+	
+class R2Loss(LossFunction):
+	"""R-squared loss function for regression."""
+	
+	def loss(self , y_true: np.ndarray, y_pred: np.ndarray) -> float:
+		eps = 1e-15
+		ss_res = np.sum((y_true - y_pred) ** 2)
+		ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+		return float(1 - ss_res / (ss_tot + eps))
+	
