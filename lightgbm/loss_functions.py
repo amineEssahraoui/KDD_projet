@@ -74,3 +74,14 @@ class HUBERLoss(LossFunction):
 		linear_loss = self.delta * (np.abs(residual) - 0.5 * self.delta)
 		return float(np.sum(np.where(is_small_error, squared_loss, linear_loss)))
 	
+	def gradient(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+		residual = y_pred - y_true
+		is_small_error = np.abs(residual) <= self.delta
+		grad_small_error = residual
+		grad_large_error = self.delta * np.sign(residual)
+		return np.where(is_small_error, grad_small_error, grad_large_error)
+	
+	def hessian(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+		residual = y_pred - y_true
+		is_small_error = np.abs(residual) <= self.delta
+		return np.where(is_small_error, 1.0, 0.0)
