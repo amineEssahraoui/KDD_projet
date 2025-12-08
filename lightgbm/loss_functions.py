@@ -92,3 +92,6 @@ class QUANTILELoss(LossFunction):
 	def __init__(self, quantile: float = 0.5):
 		self.quantile = quantile
 	
+	def loss(self , y_true: np.ndarray, y_pred: np.ndarray) -> float:
+		residual = y_true - y_pred
+		return float(np.sum(np.where(residual >= 0, self.quantile * residual, (self.quantile - 1) * residual)))
