@@ -40,4 +40,5 @@ class MAELoss(LossFunction):
 	def gradient ( self , y_true : np.ndarray , y_pred : np.ndarray ) -> np.ndarray :
 		return np . sign ( y_pred - y_true )
 	
-	
+	def hessian ( self , y_true : np.ndarray , y_pred : np.ndarray ) -> np.ndarray :
+		return np . zeros_like ( y_pred )
