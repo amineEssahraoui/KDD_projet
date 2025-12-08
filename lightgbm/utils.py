@@ -124,3 +124,36 @@ def check_is_fitted(estimator):
     
     if len(estimator.trees_) == 0:
         raise ValueError("Model has no trees. Training might have failed.")
+
+def validate_hyperparameters(num_iterations=None, learning_rate=None, 
+                            max_depth=None, num_leaves=None, 
+                            min_data_in_leaf=None):
+    """
+    Valide les hyperparamètres du modèle
+    
+    Args:
+        num_iterations : int
+        learning_rate : float
+        max_depth : int
+        num_leaves : int
+        min_data_in_leaf : int
+    """
+    if num_iterations is not None:
+        if not isinstance(num_iterations, int) or num_iterations <= 0:
+            raise ValueError("num_iterations must be a positive integer.")
+    
+    if learning_rate is not None:
+        if not isinstance(learning_rate, (int, float)) or learning_rate <= 0:
+            raise ValueError("learning_rate must be a positive number.")
+    
+    if max_depth is not None:
+        if max_depth != -1 and (not isinstance(max_depth, int) or max_depth <= 0):
+            raise ValueError("max_depth must be -1 or a positive integer.")
+    
+    if num_leaves is not None:
+        if not isinstance(num_leaves, int) or num_leaves < 2:
+            raise ValueError("num_leaves must be an integer >= 2.")
+    
+    if min_data_in_leaf is not None:
+        if not isinstance(min_data_in_leaf, int) or min_data_in_leaf <= 0:
+            raise ValueError("min_data_in_leaf must be a positive integer.")
