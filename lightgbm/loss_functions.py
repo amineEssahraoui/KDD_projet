@@ -95,3 +95,11 @@ class QUANTILELoss(LossFunction):
 	def loss(self , y_true: np.ndarray, y_pred: np.ndarray) -> float:
 		residual = y_true - y_pred
 		return float(np.sum(np.where(residual >= 0, self.quantile * residual, (self.quantile - 1) * residual)))
+	
+	def gradient(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+		residual = y_pred - y_true
+		return np.where(residual >= 0, -self.quantile, 1 - self.quantile)
+	
+	def hessian(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+		return np.zeros_like(y_pred)
+	
