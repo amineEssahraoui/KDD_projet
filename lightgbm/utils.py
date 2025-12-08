@@ -78,3 +78,33 @@ def check_X_y(X, y):
         raise ValueError("y contains NaN values.")
     
     return X, y
+
+def validate_saple_weight(sample_weight, n_samples):
+    """
+    Valide le vecteur sample_weight
+    
+    Args:
+        sample_weight : array-like, shape (n_samples,)
+        n_samples : int, nombre d'échantillons
+        
+    Returns:
+        sample_weight : numpy array validé
+        
+    Raises:
+        ValueError si sample_weight invalide
+    """
+    
+    if sample_weight is None:
+        return None
+    
+    sample_weight = np.asarray(sample_weight)
+    if sample_weight.ndim != 1:
+        raise ValueError("sample_weight must be a 1D array.")
+    
+    if sample_weight.shape[0] != n_samples:
+        raise ValueError(f"sample_weight length ({sample_weight.shape[0]}) does not match number of samples ({n_samples}).")
+    
+    if np.any(sample_weight < 0):
+        raise ValueError("sample_weight contains negative values.")
+    
+    return sample_weight
