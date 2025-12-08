@@ -85,3 +85,10 @@ class HUBERLoss(LossFunction):
 		residual = y_pred - y_true
 		is_small_error = np.abs(residual) <= self.delta
 		return np.where(is_small_error, 1.0, 0.0)
+	
+class QUANTILELoss(LossFunction):
+	"""Quantile loss with constant Hessian used by LightGBM for regression."""
+	
+	def __init__(self, quantile: float = 0.5):
+		self.quantile = quantile
+	
