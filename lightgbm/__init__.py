@@ -4,7 +4,7 @@ from .histogramme import HistogramBinner
 
 from .tree import DecisionTree, Node 
 from .loss_functions import MSELoss, MAELoss, RMSELoss , HUBERLoss , QUANTILELoss
-from .metrics import mse_score
+from .metrics import mse_score, mae_score, r2_score, rmse_score
 
 __all__ = [
     "LGBMRegressor",
@@ -17,5 +17,8 @@ __all__ = [
     "RMSELoss",
     "HUBERLoss",
     "QUANTILELoss",
-    "mse_score"
+    "mse_score", 
+    "mae_score",
+    "r2_score",
+    "rmse_score",
 ]
