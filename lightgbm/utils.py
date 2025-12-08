@@ -157,3 +157,20 @@ def validate_hyperparameters(num_iterations=None, learning_rate=None,
     if min_data_in_leaf is not None:
         if not isinstance(min_data_in_leaf, int) or min_data_in_leaf <= 0:
             raise ValueError("min_data_in_leaf must be a positive integer.")
+        
+
+def log_message(message, verbose=0):
+    """
+    Affiche un message si verbose activé
+    """
+    if verbose > 0:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        print(f"[{timestamp}] {message}")
+
+
+def log_training_progress(iteration, total_iterations, loss, verbose=0):
+    """
+    Affiche la progression de l'entraînement
+    """
+    if verbose > 0 and (iteration % max(1, total_iterations // 10) == 0 or iteration == total_iterations):
+        print(f"[LightGBM] Iteration {iteration}/{total_iterations} - Loss: {loss:.6f}")
