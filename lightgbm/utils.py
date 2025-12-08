@@ -108,3 +108,19 @@ def validate_saple_weight(sample_weight, n_samples):
         raise ValueError("sample_weight contains negative values.")
     
     return sample_weight
+
+def check_is_fitted(estimator):
+    """
+    Vérifie qu'un modèle a été entraîné
+    
+    Args:
+        estimator : objet du modèle
+        
+    Raises:
+        ValueError si le modèle n'est pas entraîné
+    """
+    if not hasattr(estimator, 'trees_') or estimator.trees_ is None:
+        raise ValueError("This model is not fitted yet. Call 'fit' first.")
+    
+    if len(estimator.trees_) == 0:
+        raise ValueError("Model has no trees. Training might have failed.")
