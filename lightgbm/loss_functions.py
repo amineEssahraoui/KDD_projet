@@ -49,3 +49,6 @@ class RMSEloss(LossFunction):
 	def loss(self , y_true: np.ndarray, y_pred: np.ndarray) -> float:
 		return float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
 	
+	def gradient(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+		n = len(y_true)
+		return (y_pred - y_true) / (np.sqrt(np.mean((y_true - y_pred) ** 2)) * n)
