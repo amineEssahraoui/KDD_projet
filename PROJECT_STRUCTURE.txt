@@ -1,0 +1,38 @@
+lightgbm_package/
+│
+├── lightgbm/                      # Package principal
+│   ├── __init__.py
+│   ├── base.py
+│   ├── efb.py
+│   ├── goss.py
+│   ├── histogramme.py
+│   ├── leaf_wise.py
+│   ├── lgbm_classifier.py
+│   ├── lgbm_regressor.py
+│   ├── loss_functions.py
+│   ├── metrics.py
+│   ├── tree.py
+│   └── utils.py
+│
+├── tests/                         # Tests unitaires
+│   ├── __init__.py
+│   ├── test_classifier.py
+│   ├── test_gross.py
+│   ├── test_histogram.py
+│   ├── test_regressor.py
+│   └── test_tree.py
+│
+├── examples/                      # Notebooks de démonstration
+│   ├── data_regression.csv
+│   ├── multiple_linear_regression_dataset.csv
+│   ├── regression_pipeline.py
+│   └── Séance_1_Regression.ipynb
+│
+├── docs/                          # Documentation technique
+│   ├── ARCHITECTURE.md            ✓ Créé
+│   ├── ALGORITHMS.md              ✓ Créé
+│   └── IMPLEMENTATION_GUIDE.md     ✓ Créé
+│
+├── README.md                      # Ce fichier (existant)
+├── setup.py                       # Configuration d'installation ✓ Créé
+└── requirements.txt               # Dépendances (existant)
