@@ -102,4 +102,3 @@ class QUANTILELoss(LossFunction):
 	
 	def hessian(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
 		return np.zeros_like(y_pred)
-	
