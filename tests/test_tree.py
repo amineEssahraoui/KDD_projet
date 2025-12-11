@@ -62,3 +62,15 @@ def tree_can_handles_constant_features():
     X = np.array([[1, 5], [1, 6], [1, 7], [1, 8]])
     gradients = np.array([0.5, -0.3, 0.2, -0.1])
     hessians = np.ones(4)
+
+    tree = DecisionTree (
+        max_depth=3,
+        num_leaves=5,
+        min_data_in_leaf=1,
+        lambda_l2=0.1,
+        min_sum_hessian_in_leaf=0.0,
+        min_gain_to_split=0.0
+    )
+    tree.fit(X, gradients, hessians)
+    predictions = tree.predict(X)
+    assert predictions.shape == (4,)
