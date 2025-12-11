@@ -80,4 +80,16 @@ def test_tree_with_histogram_mode():
     gradients = np.random.randn(100)
     hessians = np.ones(100)
 
-    
+    tree = DecisionTree (
+        max_depth=5,
+        num_leaves=20,
+        min_data_in_leaf=1,
+        lambda_l2=1.0,
+        min_sum_hessian_in_leaf=0.0,
+        min_gain_to_split=0.0,
+        use_histogram=True,
+        num_bins=16
+    )
+    tree.fit(X, gradients, hessians)
+    predictions = tree.predict(X)
+    assert predictions.shape == (100,)
