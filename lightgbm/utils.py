@@ -57,7 +57,7 @@ def check_X_y(X, y):
         ValueError si les dimensions ne sont pas compatibles
     """
     
-    X = ValidateInputData(X)
+    X = ValidateInputData(X , allow_nan=True)
     if isinstance(y, (pd.Series, pd.DataFrame)):
         y = y.values
     y = np.asarray(y)
