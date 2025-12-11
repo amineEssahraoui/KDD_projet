@@ -79,7 +79,7 @@ def check_X_y(X, y):
     
     return X, y
 
-def validate_saple_weight(sample_weight, n_samples):
+def validate_sample_weight(sample_weight, n_samples):
     """
     Valide le vecteur sample_weight
     
