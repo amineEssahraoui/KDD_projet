@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-def ValidateInputData(X): 
+def ValidateInputData(X , allow_nan: bool = True) -> np.ndarray: 
     """
     Valide et convertit X en numpy array
     
@@ -34,7 +34,7 @@ def ValidateInputData(X):
     if np.any(np.isinf(X)):
         raise ValueError("Input data contains infinite values.")
     
-    if np.any(np.isnan(X)):
+    if not allow_nan and np.any(np.isnan(X)):
         raise ValueError("Input data contains NaN values.")
     
     if X.shape[0] == 0:
