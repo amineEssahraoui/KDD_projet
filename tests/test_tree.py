@@ -57,3 +57,8 @@ def test_tree_predict_returns_correct_shape():
     predictions = tree.predict(X)
     assert predictions.shape == (50,)
     assert np.all(np.isfinite(predictions))
+
+def tree_can_handles_constant_features():
+    X = np.array([[1, 5], [1, 6], [1, 7], [1, 8]])
+    gradients = np.array([0.5, -0.3, 0.2, -0.1])
+    hessians = np.ones(4)
