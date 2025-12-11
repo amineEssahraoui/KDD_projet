@@ -16,3 +16,25 @@ def test_tree_can_fit_sample_data():
     tree.fit(X, gradients, hessians)
     assert tree.root_node is not None
     assert tree.n_features_ == 2
+
+def test_tree_leaf_wise_creates_limited_leaves():
+    X = np.random.rand(100, 5)
+    gradients = np.random.randn(100)
+    hessians = np.ones(100)
+
+    num_leaves_target = 5
+    tree = DecisionTree (
+        max_depth=10,
+        num_leaves=num_leaves_target,
+        min_data_in_leaf=1,
+        main_sum_hessian_in_leaf=0.0,
+        lambda_l2=0.1,
+        min_gain_to_split=0.0
+    )
+    tree.fit(X, gradients, hessians)
+    def count_leaves(node):
+        if node.is_leaf():
+            return 1
+        return count_leaves(node.left_child) + count_leaves(node.right_child)
+    actual_leaves = count_leaves(tree.root)
+    assert actual_leaves <= num_leaves_target
