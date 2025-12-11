@@ -38,3 +38,22 @@ def test_tree_leaf_wise_creates_limited_leaves():
         return count_leaves(node.left_child) + count_leaves(node.right_child)
     actual_leaves = count_leaves(tree.root)
     assert actual_leaves <= num_leaves_target
+
+
+def test_tree_predict_returns_correct_shape(): 
+    X = np.random.rand(50, 3)
+    gradients = np.random.randn(50)
+    hessians = np.ones(50)
+
+    tree = DecisionTree (
+        max_depth=4,
+        num_leaves=15,
+        min_data_in_leaf=1,
+        lambda_l2=0.1,
+        min_gain_to_split=0.0
+        min_sum_hessian_in_leaf=0.0
+    )
+    tree.fit(X, gradients, hessians)
+    predictions = tree.predict(X)
+    assert predictions.shape == (50,)
+    assert np.all(np.isfinite(predictions))
