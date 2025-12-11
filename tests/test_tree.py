@@ -74,3 +74,10 @@ def tree_can_handles_constant_features():
     tree.fit(X, gradients, hessians)
     predictions = tree.predict(X)
     assert predictions.shape == (4,)
+
+def test_tree_with_histogram_mode():
+    X = np.random.rand(100, 4)
+    gradients = np.random.randn(100)
+    hessians = np.ones(100)
+
+    
