@@ -93,3 +93,25 @@ def test_tree_with_histogram_mode():
     tree.fit(X, gradients, hessians)
     predictions = tree.predict(X)
     assert predictions.shape == (100,)
+
+def test_tree_respects_min_gain_to_split():
+    X = np.random.rand(20, 2)
+    gradients = np.random.randn(20)
+    hessians = np.ones(20)
+
+    tree = DecisionTree (
+        max_depth=4,
+        num_leaves=10,
+        min_data_in_leaf=1,
+        lambda_l2=0.1,
+        min_sum_hessian_in_leaf=0.0,
+        min_gain_to_split=1.0
+    )
+    tree.fit(X, gradients, hessians)
+    def count_leaves(node):
+        if node.is_leaf():
+            return 1
+        return count_leaves(node.left_child) + count_leaves(node.right_child)
+    
+    leaves_count = count_leaves(tree.root)
+    assert leaves_count < 5
