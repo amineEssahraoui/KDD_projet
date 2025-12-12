@@ -140,3 +140,16 @@ def test_tree_with_categorical_features():
     hessians = np.ones(4)
 
     categorical_features = [0]
+
+    tree = DecisionTree(
+        max_depth=3,
+        num_leaves=5,
+        min_data_in_leaf=1,
+        lambda_l2=0.1,
+        min_gain_to_split=0.0,
+        min_sum_hessian_in_leaf=0.0,
+        categorical_features=categorical_features
+    )
+    tree.fit(X, gradients, hessians)
+    predictions = tree.predict(X)
+    assert predictions.shape == (4,)
