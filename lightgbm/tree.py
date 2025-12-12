@@ -36,7 +36,8 @@ class DecisionTree:
 		min_data_in_leaf: int,
 		min_sum_hessian_in_leaf: float,
 		lambda_l2: float,
-		min_gain_to_split: float,
+		min_gain_to_split: float = 0.0,
+		lambda_l1: float = 0.0,
 		colsample: float = 1.0,
 		random_state: Optional[int] = None,
 		use_histogram: bool = False,
@@ -49,6 +50,7 @@ class DecisionTree:
 		self.min_data_in_leaf = min_data_in_leaf
 		self.min_sum_hessian_in_leaf = min_sum_hessian_in_leaf
 		self.lambda_l2 = lambda_l2
+		self.lambda_l1 = lambda_l1
 		self.min_gain_to_split = min_gain_to_split
 		self.colsample = colsample
 		self.random_state = random_state
@@ -116,12 +118,27 @@ class DecisionTree:
 	def _leaf_value(self, gradients: np.ndarray, hessians: np.ndarray, indices: np.ndarray) -> float:
 		G = gradients[indices].sum()
 		H = hessians[indices].sum()
-		return -G / (H + self.lambda_l2)
+		if H < self.min_sum_hessian_in_leaf:
+			return 0.0
+		# L1 soft-thresholding for leaf value.
+		abs_G = abs(G)
+		if abs_G <= self.lambda_l1:
+			return 0.0
+		return -np.sign(G) * (abs_G - self.lambda_l1) / (H + self.lambda_l2)
 
 	def _gain(self, G_left: float, H_left: float, G_right: float, H_right: float, G_total: float, H_total: float) -> float:
-		left = (G_left ** 2) / (H_left + self.lambda_l2)
-		right = (G_right ** 2) / (H_right + self.lambda_l2)
-		parent = (G_total ** 2) / (H_total + self.lambda_l2)
+		def _score(G: float, H: float) -> float:
+			if H < self.min_sum_hessian_in_leaf:
+				return -np.inf
+			abs_G = abs(G)
+			if abs_G <= self.lambda_l1:
+				return 0.0
+			shrink = abs_G - self.lambda_l1
+			return (shrink ** 2) / (H + self.lambda_l2)
+
+		left = _score(G_left, H_left)
+		right = _score(G_right, H_right)
+		parent = _score(G_total, H_total)
 		return left + right - parent
 
 	def _gain_with_nans(

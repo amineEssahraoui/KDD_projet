@@ -27,6 +27,7 @@ class BoosterParams:
 	min_data_in_leaf: int = 20
 	min_sum_hessian_in_leaf: float = 0.0
 	lambda_l2: float = 0.0
+	lambda_l1: float = 0.0
 	min_gain_to_split: float = 0.0
 	subsample: float = 1.0
 	colsample: float = 1.0
@@ -47,6 +48,7 @@ class BaseEstimator(abc.ABC):
 		min_data_in_leaf: int = 20,
 		min_sum_hessian_in_leaf: float = 0.0,
 		lambda_l2: float = 0.0,
+		lambda_l1: float = 0.0,
 		min_gain_to_split: float = 0.0,
 		subsample: float = 1.0,
 		colsample: float = 1.0,
@@ -62,6 +64,7 @@ class BaseEstimator(abc.ABC):
 			min_data_in_leaf=min_data_in_leaf,
 			min_sum_hessian_in_leaf=min_sum_hessian_in_leaf,
 			lambda_l2=lambda_l2,
+			lambda_l1=lambda_l1,
 			min_gain_to_split=min_gain_to_split,
 			subsample=subsample,
 			colsample=colsample,
