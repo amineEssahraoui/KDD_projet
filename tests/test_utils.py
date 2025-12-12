@@ -7,3 +7,9 @@ def test_validate_input_accepts_numpy():
     result = ValidateInputData(X)
     assert isinstance(result.data, np.ndarray)
     assert result.shape == (2, 2)
+
+def test_validate_input_accepts_pandas(): 
+    X = pd.DataFrame([[1, 2], [3, 4]], columns=['column1', 'column2'])
+    result = ValidateInputData(X)
+    assert isinstance(result.data, pd.DataFrame)
+    assert result.shape == (2, 2)
