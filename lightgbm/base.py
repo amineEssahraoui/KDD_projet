@@ -20,6 +20,8 @@ class BoosterParams:
 
 	num_iterations: int = 100
 	learning_rate: float = 0.1
+	lr_decay: float = 1.0
+	lr_decay_steps: int = 1
 	max_depth: int = 6
 	num_leaves: int = 31
 	min_data_in_leaf: int = 20
@@ -38,6 +40,8 @@ class BaseEstimator(abc.ABC):
 		self,
 		num_iterations: int = 100,
 		learning_rate: float = 0.1,
+		lr_decay: float = 1.0,
+		lr_decay_steps: int = 1,
 		max_depth: int = 6,
 		num_leaves: int = 31,
 		min_data_in_leaf: int = 20,
@@ -51,6 +55,8 @@ class BaseEstimator(abc.ABC):
 		self.params = BoosterParams(
 			num_iterations=num_iterations,
 			learning_rate=learning_rate,
+			lr_decay=lr_decay,
+			lr_decay_steps=lr_decay_steps,
 			max_depth=max_depth,
 			num_leaves=num_leaves,
 			min_data_in_leaf=min_data_in_leaf,

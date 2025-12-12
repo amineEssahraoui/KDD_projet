@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pickle
-from typing import List, Optional, Tuple, Sequence
+from typing import Callable, List, Optional, Tuple, Sequence
 
 import numpy as np
 
@@ -26,6 +26,8 @@ class LGBMRegressor(BaseEstimator):
 		self,
 		num_iterations: int = 100,
 		learning_rate: float = 0.1,
+		lr_decay: float = 1.0,
+		lr_decay_steps: int = 1,
 		max_depth: int = 6,
 		num_leaves: int = 31,
 		min_data_in_leaf: int = 20,
@@ -48,10 +50,13 @@ class LGBMRegressor(BaseEstimator):
 		default_left: bool = True,
 		eval_metric: str = "mse",
 		verbose_eval: Optional[int] = None,
+		callbacks: Optional[Sequence[Callable[[int, dict], None]]] = None,
 	) -> None:
 		super().__init__(
 			num_iterations=num_iterations,
 			learning_rate=learning_rate,
+			lr_decay=lr_decay,
+			lr_decay_steps=lr_decay_steps,
 			max_depth=max_depth,
 			num_leaves=num_leaves,
 			min_data_in_leaf=min_data_in_leaf,
@@ -80,6 +85,7 @@ class LGBMRegressor(BaseEstimator):
 		self.default_left = default_left
 		self.eval_metric = eval_metric
 		self.verbose_eval = verbose_eval
+		self.callbacks = list(callbacks) if callbacks is not None else []
 		self.eval_history_: list[tuple[int, float]] = []
 		self.best_iteration_: Optional[int] = None
 		self.split_importances_: Optional[np.ndarray] = None
@@ -125,6 +131,7 @@ class LGBMRegressor(BaseEstimator):
 
 		self.trees_ = []
 		for iter_idx in range(self.params.num_iterations):
+			lr = self.params.learning_rate * (self.params.lr_decay ** (iter_idx // max(1, self.params.lr_decay_steps)))
 			grad = self.loss.gradient(y, y_pred)
 			hess = self.loss.hessian(y, y_pred)
 
@@ -154,10 +161,10 @@ class LGBMRegressor(BaseEstimator):
 			tree.fit(X_sub, grad_sub, hess_sub)
 			self.trees_.append(tree)
 
-			y_pred += self.params.learning_rate * tree.predict(X_proc)
+			y_pred += lr * tree.predict(X_proc)
 
 			if eval_set is not None:
-				val_pred += self.params.learning_rate * tree.predict(X_val_proc)
+				val_pred += lr * tree.predict(X_val_proc)
 				metric_val = self._eval_metric(y_val, val_pred)
 				self.eval_history_.append((iter_idx, metric_val))
 				if best_iter == -1:
@@ -179,7 +186,10 @@ class LGBMRegressor(BaseEstimator):
 							break
 
 				if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
-					print(f"Iter {iter_idx}: {self.eval_metric}={metric_val:.6f}")
+					print(f"Iter {iter_idx}: {self.eval_metric}={metric_val:.6f} lr={lr:.4f}")
+
+				for cb in self.callbacks:
+					cb(iter_idx, {"metric": metric_val, "lr": lr})
 
 		if eval_set is not None and best_iter >= 0:
 			self.trees_ = best_trees
