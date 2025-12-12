@@ -32,3 +32,8 @@ def test_check_X_y_incompatible_shapes():
     y = np.array([1, 0, 1])
     with pytest.raises(ValueError, match="do not test_check_X_y_compatible_shapes match"):
         check_X_y(X, y)
+
+def test_validate_sample_weight_work(): 
+    weights = np.array([1.0, 0.5, 2.0])
+    result = validate_sample_weight(weights, expected_length=3)
+    assert np.array_equal(result, weights)
