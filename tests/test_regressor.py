@@ -177,3 +177,34 @@ def test_nan_routing_and_min_hessian():
 	model.fit(X, y)
 	preds = model.predict(X[:10])
 	assert np.isfinite(preds).all()
+
+
+def test_disallow_nan_raises():
+	rng = np.random.default_rng(42)
+	X = rng.normal(size=(50, 3))
+	X[0, 0] = np.nan
+	y = rng.normal(size=50)
+	model = LGBMRegressor(num_iterations=5, learning_rate=0.1, allow_nan=False)
+	try:
+		model.fit(X, y)
+	except ValueError:
+		# expected because NaNs are not allowed
+		return
+	raise AssertionError("Expected ValueError when fitting with NaN and allow_nan=False")
+
+
+def test_predict_disallow_nan_raises():
+	rng = np.random.default_rng(123)
+	X = rng.normal(size=(40, 2))
+	y = rng.normal(size=40)
+	model = LGBMRegressor(num_iterations=5, learning_rate=0.1)
+	model.fit(X, y)
+	X_new = X.copy()
+	X_new[0, 0] = np.nan
+	model_no_nan = LGBMRegressor(num_iterations=2, learning_rate=0.1, allow_nan=False)
+	model_no_nan.fit(X, y)
+	try:
+		model_no_nan.predict(X_new)
+	except ValueError:
+		return
+	raise AssertionError("Expected ValueError when predicting with NaN and allow_nan=False")
