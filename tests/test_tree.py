@@ -118,3 +118,18 @@ def test_tree_respects_min_gain_to_split():
 
 def test_tree_handles_nan_values(): 
     X = np.array([[1,2] , [3,np.nan], [5,6], [np.nan,8]])
+    gradients = np.array([0.5, -0.3, 0.2, -0.1])
+    hessians = np.ones(4)
+
+    tree = DecisionTree(
+        max_depth=3,
+        num_leaves=5,
+        min_data_in_leaf=1,
+        lambda_l2=0.1,
+        min_gain_to_split=0.0,
+        min_sum_hessian_in_leaf=0.0
+    )
+    tree.fit(X, gradients, hessians)
+    predictions = tree.predict(X)
+    assert predictions.shape == (4,)
+    assert np.all(np.isfinite(predictions))
