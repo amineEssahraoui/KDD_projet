@@ -288,8 +288,8 @@ class LGBMRegressor(BaseEstimator):
 	def predict(self, X: np.ndarray) -> np.ndarray:
 		# Ensure model is trained
 		check_is_fitted(self)
-		# Validate input X
-		X = ValidateInputData(X, allow_nan=False)
+		# Validate input X (allow NaNs because trees handle them during prediction)
+		X = ValidateInputData(X, allow_nan=True)
 		if self.n_features_ is not None and X.shape[1] != self.n_features_:
 			raise ValueError("Input feature dimension does not match training data")
 		X_proc = X
