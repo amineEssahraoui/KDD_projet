@@ -56,3 +56,9 @@ def test_check_is_fitted_passes_when_fitted():
     model.fit(X, y)
     check_is_fitted(model)
     assert True
+
+def test_check_is_fitted_with_empty_tree():
+    model = LGBMRegressor(num_iterations = 10)
+    model.trees_ = []  
+    with pytest.raises(ValueError):
+        check_is_fitted(model)
