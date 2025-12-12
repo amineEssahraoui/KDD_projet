@@ -188,7 +188,6 @@ def test_disallow_nan_raises():
 	try:
 		model.fit(X, y)
 	except ValueError:
-		# expected because NaNs are not allowed
 		return
 	raise AssertionError("Expected ValueError when fitting with NaN and allow_nan=False")
 
