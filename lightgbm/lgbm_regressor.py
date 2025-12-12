@@ -13,6 +13,7 @@ from .goss import GOSSSampler
 from .histogramme import HistogramBinner
 from .metrics import mse_score, mae_score, r2_score, rmse_score, mape_score
 from .loss_functions import HUBERLoss, MAELoss, MSELoss, QUANTILELoss, RMSELoss, LossFunction
+from .utils import ValidateInputData, check_X_y, validate_hyperparameters, check_is_fitted
 from .tree import DecisionTree
 
 
@@ -127,7 +128,12 @@ class LGBMRegressor(BaseEstimator):
 
 
 	def fit(self, X: np.ndarray, y: np.ndarray, eval_set: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> "LGBMRegressor":
-		X, y = self._check_arrays(X, y)
+		X, y = check_X_y(X, y)
+		validate_hyperparameters(num_iterations=self.params.num_iterations,
+					learning_rate=self.params.learning_rate,
+					max_depth=self.params.max_depth,
+					num_leaves=self.params.num_leaves,
+					min_data_in_leaf=self.params.min_data_in_leaf)
 		self.n_features_ = X.shape[1]
 		if not isinstance(self.loss, LossFunction) and isinstance(self.loss_name, str):
 			self.loss = self._make_loss(self.loss_name)
@@ -191,7 +197,7 @@ class LGBMRegressor(BaseEstimator):
 				X_val_raw, y_val_raw = eval_set[0]
 			else:
 				X_val_raw, y_val_raw = eval_set
-			X_val, y_val = self._check_arrays(X_val_raw, y_val_raw)
+			X_val, y_val = check_X_y(X_val_raw, y_val_raw)
 			if self._efb is not None:
 				X_val = self._efb.transform(X_val)
 			X_val_proc = self._binner.transform(X_val) if self.use_histogram else X_val
@@ -280,7 +286,10 @@ class LGBMRegressor(BaseEstimator):
 
 
 	def predict(self, X: np.ndarray) -> np.ndarray:
-		X = self._check_arrays(X)
+		# Ensure model is trained
+		check_is_fitted(self)
+		# Validate input X
+		X = ValidateInputData(X, allow_nan=False)
 		if self.n_features_ is not None and X.shape[1] != self.n_features_:
 			raise ValueError("Input feature dimension does not match training data")
 		X_proc = X
