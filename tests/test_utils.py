@@ -19,3 +19,10 @@ def test_validate_input_rejects_infinite_values():
     X = np.array([[1, 2], [np.inf, 4]])
     with pytest.raises(ValueError, match="infinite"):
         ValidateInputData(X)
+
+def test_check_X_y_compatible_shapes():
+    X = np.array([[1, 2], [3, 4], [5, 6]])
+    y = np.array([1, 0, 1])
+    X_checked, y_checked = check_X_y(X, y)
+    assert X_checked.shape == (3, 2)
+    assert y_checked.shape == (3,)
