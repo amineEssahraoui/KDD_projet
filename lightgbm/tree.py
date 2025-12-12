@@ -63,14 +63,12 @@ class DecisionTree:
 		self.feature_importances_ = None
 		self.split_counts_ = None
 
-	# ------------------------------------------------------------------
 	def fit(self, X: np.ndarray, gradients: np.ndarray, hessians: np.ndarray) -> "DecisionTree":
 		X = np.asarray(X, dtype=float)
 		gradients = np.asarray(gradients, dtype=float)
 		hessians = np.asarray(hessians, dtype=float)
 		self.n_features_ = X.shape[1]
 
-		# Priority queue holds (-gain, depth, Node, indices)
 		indices = np.arange(len(X))
 		self.root.value = self._leaf_value(gradients, hessians, indices)
 		pq = []
@@ -114,7 +112,6 @@ class DecisionTree:
 		self.split_counts_ = split_counts
 		return self
 
-	# ------------------------------------------------------------------
 	def _leaf_value(self, gradients: np.ndarray, hessians: np.ndarray, indices: np.ndarray) -> float:
 		G = gradients[indices].sum()
 		H = hessians[indices].sum()
@@ -152,7 +149,6 @@ class DecisionTree:
 		nan_G: float,
 		nan_H: float,
 	) -> Tuple[float, bool]:
-		# Evaluate gain when routing NaNs left or right; return best gain and whether NaNs go left.
 		left_G_default = G_left + nan_G if self.default_left else G_left
 		left_H_default = H_left + nan_H if self.default_left else H_left
 		right_G_default = G_total - left_G_default
@@ -205,7 +201,6 @@ class DecisionTree:
 
 		return best_gain, best_split
 
-	# ------------------------------------------------------------------
 	def predict(self, X: np.ndarray) -> np.ndarray:
 		X = np.asarray(X, dtype=float)
 		preds = np.empty(len(X))
@@ -213,7 +208,6 @@ class DecisionTree:
 			preds[i] = self.root.predict_one(row)
 		return preds
 
-	# ------------------------------------------------------------------
 	def _best_split_numeric(
 		self,
 		X: np.ndarray,
