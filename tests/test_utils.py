@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd 
 import pytest
 from lightgbm import LGBMRegressor
-from lightgbm.utils import ValidateInputData, check_X_y, check_is_fitted, validate_sample_weight
+from lightgbm.utils import ValidateInputData, check_X_y, check_is_fitted, validate_sample_weight, validate_hyperparameters
 
 def test_validate_input_accepts_numpy(): 
     X = np.array([[1, 2], [3, 4]])
@@ -62,3 +62,14 @@ def test_check_is_fitted_with_empty_tree():
     model.trees_ = []  
     with pytest.raises(ValueError):
         check_is_fitted(model)
+
+def test_validate_hyperparameters_valid():
+   
+   validate_hyperparameters (
+        num_iterations=100,
+        learning_rate=0.1,
+        max_depth=5, 
+        num_leaves=31,
+        min_data_in_leaf=20
+   )
+   assert True
