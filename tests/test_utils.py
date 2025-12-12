@@ -1,6 +1,7 @@
 import numpy as np 
 import pandas as pd 
 import pytest
+from lightgbm import LGBMRegressor
 from lightgbm.utils import ValidateInputData, check_X_y, check_is_fitted, validate_sample_weight
 
 def test_validate_input_accepts_numpy(): 
@@ -42,3 +43,8 @@ def test_validate_sample_weight_rejects_negative():
     weights = np.array([1.0, -0.5, 2.0])
     with pytest.raises(ValueError, match="negative"):
         validate_sample_weight(weights, n_samples=3)
+
+def test_check_is_fitted_raises_if_not_fitted():
+    model = LGBMRegressor(num_iterations = 10)
+    with pytest.raises(ValueError, match="not fitted"):
+        check_is_fitted(model)
