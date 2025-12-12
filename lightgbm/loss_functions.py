@@ -101,4 +101,5 @@ class QUANTILELoss(LossFunction):
 		return np.where(residual >= 0, -self.quantile, 1 - self.quantile)
 	
 	def hessian(self , y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-		return np.zeros_like(y_pred)
+		# Small constant keeps second-order estimates stable.
+		return np.ones_like(y_pred) * 1e-12

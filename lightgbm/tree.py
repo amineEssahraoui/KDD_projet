@@ -36,7 +36,8 @@ class DecisionTree:
 		min_data_in_leaf: int,
 		min_sum_hessian_in_leaf: float,
 		lambda_l2: float,
-		min_gain_to_split: float,
+		min_gain_to_split: float = 0.0,
+		lambda_l1: float = 0.0,
 		colsample: float = 1.0,
 		random_state: Optional[int] = None,
 		use_histogram: bool = False,
@@ -49,6 +50,7 @@ class DecisionTree:
 		self.min_data_in_leaf = min_data_in_leaf
 		self.min_sum_hessian_in_leaf = min_sum_hessian_in_leaf
 		self.lambda_l2 = lambda_l2
+		self.lambda_l1 = lambda_l1
 		self.min_gain_to_split = min_gain_to_split
 		self.colsample = colsample
 		self.random_state = random_state
@@ -116,12 +118,27 @@ class DecisionTree:
 	def _leaf_value(self, gradients: np.ndarray, hessians: np.ndarray, indices: np.ndarray) -> float:
 		G = gradients[indices].sum()
 		H = hessians[indices].sum()
-		return -G / (H + self.lambda_l2)
+		if H < self.min_sum_hessian_in_leaf:
+			return 0.0
+		# L1 soft-thresholding for leaf value.
+		abs_G = abs(G)
+		if abs_G <= self.lambda_l1:
+			return 0.0
+		return -np.sign(G) * (abs_G - self.lambda_l1) / (H + self.lambda_l2)
 
 	def _gain(self, G_left: float, H_left: float, G_right: float, H_right: float, G_total: float, H_total: float) -> float:
-		left = (G_left ** 2) / (H_left + self.lambda_l2)
-		right = (G_right ** 2) / (H_right + self.lambda_l2)
-		parent = (G_total ** 2) / (H_total + self.lambda_l2)
+		def _score(G: float, H: float) -> float:
+			if H < self.min_sum_hessian_in_leaf:
+				return -np.inf
+			abs_G = abs(G)
+			if abs_G <= self.lambda_l1:
+				return 0.0
+			shrink = abs_G - self.lambda_l1
+			return (shrink ** 2) / (H + self.lambda_l2)
+
+		left = _score(G_left, H_left)
+		right = _score(G_right, H_right)
+		parent = _score(G_total, H_total)
 		return left + right - parent
 
 	def _gain_with_nans(
@@ -395,6 +412,8 @@ class DecisionTree:
 
 		best_gain = 0.0
 		best_split = None
+
+		# Ordered partition heuristic (LightGBM-style)
 		for i in range(len(cats_sorted) - 1):
 			left_mask_inv = np.isin(inv, order_cats[: i + 1])
 			left_count = left_mask_inv.sum()
@@ -414,9 +433,34 @@ class DecisionTree:
 
 			gain = self._gain(G_left, H_left, G_right, H_right, G_total, H_total)
 			if gain > best_gain:
-				# Use category ordering threshold encoded as mid between last left cat and first right cat
 				threshold = (cats_sorted[i] + cats_sorted[i + 1]) / 2.0
 				left_mask = np.isin(values, cats_sorted[: i + 1])
+				left_indices = indices[left_mask]
+				right_indices = indices[~left_mask]
+				best_gain = gain
+				best_split = (feat_idx, threshold, left_indices, right_indices)
+
+		# One-vs-rest heuristic: try each category alone vs the rest
+		for cat in unique_cats:
+			left_mask = values == cat
+			left_count = left_mask.sum()
+			right_count = len(indices) - left_count
+			if left_count < self.min_data_in_leaf or right_count < self.min_data_in_leaf:
+				continue
+
+			G_left = gradients[indices][left_mask].sum()
+			H_left = hessians[indices][left_mask].sum()
+			G_right = G_total - G_left
+			H_right = H_total - H_left
+			if H_left < self.min_sum_hessian_in_leaf or H_right < self.min_sum_hessian_in_leaf:
+				continue
+
+			if not self._monotone_ok(feat_idx, G_left, H_left, G_right, H_right):
+				continue
+
+			gain = self._gain(G_left, H_left, G_right, H_right, G_total, H_total)
+			if gain > best_gain:
+				threshold = cat + 0.5  # separates this cat from the rest
 				left_indices = indices[left_mask]
 				right_indices = indices[~left_mask]
 				best_gain = gain
