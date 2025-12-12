@@ -22,8 +22,8 @@ class Node:
 		if self.is_leaf or self.feature_index is None or self.threshold is None:
 			return self.value
 		if x[self.feature_index] <= self.threshold:
-			return self.left.predict_one(x)  # type: ignore[union-attr]
-		return self.right.predict_one(x)  # type: ignore[union-attr]
+			return self.left.predict_one(x)  
+		return self.right.predict_one(x)  
 
 
 class DecisionTree:
