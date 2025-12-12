@@ -115,3 +115,6 @@ def test_tree_respects_min_gain_to_split():
     
     leaves_count = count_leaves(tree.root)
     assert leaves_count < 5
+
+def test_tree_handles_nan_values(): 
+    X = np.array([[1,2] , [3,np.nan], [5,6], [np.nan,8]])
