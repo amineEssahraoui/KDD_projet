@@ -37,3 +37,8 @@ def test_validate_sample_weight_work():
     weights = np.array([1.0, 0.5, 2.0])
     result = validate_sample_weight(weights, expected_length=3)
     assert np.array_equal(result, weights)
+
+def test_validate_sample_weight_rejects_negative(): 
+    weights = np.array([1.0, -0.5, 2.0])
+    with pytest.raises(ValueError, match="negative"):
+        validate_sample_weight(weights, expected_length=3)
