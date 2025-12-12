@@ -36,7 +36,7 @@ def test_tree_leaf_wise_creates_limited_leaves():
     def count_leaves(node):
         if node.is_leaf:
             return 1
-        return count_leaves(node.left_child) + count_leaves(node.right_child)
+        return count_leaves(node.left) + count_leaves(node.right)
     actual_leaves = count_leaves(tree.root)
     assert actual_leaves <= num_leaves_target
 
