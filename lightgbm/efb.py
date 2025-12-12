@@ -107,7 +107,6 @@ class ExclusiveFeatureBundler:
 	def fit_transform(self, X: np.ndarray) -> np.ndarray:
 		return self.fit(X).transform(X)
 
-	# ------------------------------------------------------------------
 	def bundle_features(self) -> List[Sequence[int]]:
 		"""Return the list of feature indices grouped per bundle."""
 
@@ -115,10 +114,8 @@ class ExclusiveFeatureBundler:
 			return []
 		return [tuple(b["features"]) for b in self.bundles_]
 
-	# ------------------------------------------------------------------
 	@staticmethod
 	def _offset_step(values: np.ndarray) -> float:
-		# Keep bundled thresholds separated even when values are small.
 		if values.size == 0:
 			return 1.0
 		finite_vals = values[np.isfinite(values)]
