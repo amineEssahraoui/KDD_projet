@@ -133,3 +133,10 @@ def test_tree_handles_nan_values():
     predictions = tree.predict(X)
     assert predictions.shape == (4,)
     assert np.all(np.isfinite(predictions))
+
+def test_tree_with_categorical_features():
+    X = np.array([[0.2], [1.4], [0,6], [1,8]])
+    gradients = np.array([0.5, -0.3, 0.2, -0.1])
+    hessians = np.ones(4)
+
+    categorical_features = [0]
