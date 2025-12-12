@@ -12,7 +12,7 @@ from .loss_functions import MSELoss
 from .tree import DecisionTree
 from .goss import GOSSSampler
 from .histogramme import HistogramBinner
-
+from .metrics import mse_score, mae_score, r2_score, rmse_score, mape_score
 
 class LGBMRegressor(BaseEstimator):
 	"""Gradient boosting regressor using LightGBM-style trees.
@@ -84,7 +84,7 @@ class LGBMRegressor(BaseEstimator):
 		self.best_iteration_: Optional[int] = None
 		self.split_importances_: Optional[np.ndarray] = None
 
-	# ------------------------------------------------------------------
+
 	def fit(self, X: np.ndarray, y: np.ndarray, eval_set: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> "LGBMRegressor":
 		X, y = self._check_arrays(X, y)
 		self.n_features_ = X.shape[1]
@@ -190,7 +190,7 @@ class LGBMRegressor(BaseEstimator):
 		self._compute_feature_importances()
 		return self
 
-	# ------------------------------------------------------------------
+
 	def predict(self, X: np.ndarray) -> np.ndarray:
 		X = self._check_arrays(X)
 		if self.use_histogram:
@@ -275,10 +275,15 @@ class LGBMRegressor(BaseEstimator):
 
 	def _eval_metric(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
 		if self.eval_metric == "mse":
-			return float(np.mean((y_true - y_pred) ** 2))
-		if self.eval_metric == "rmse":
-			return float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
-		if self.eval_metric == "mae":
-			return float(np.mean(np.abs(y_true - y_pred)))
-		raise ValueError(f"Unknown eval_metric: {self.eval_metric}")
-
+			return mse_score(y_true, y_pred)
+		elif self.eval_metric == "mae":
+			return mae_score(y_true, y_pred)
+		elif self.eval_metric == "r2":
+			return r2_score(y_true, y_pred)
+		elif self.eval_metric == "rmse":
+			return rmse_score(y_true, y_pred)
+		elif self.eval_metric == "mape":
+			return mape_score(y_true, y_pred)
+		else:
+			raise ValueError(f"Unknown eval_metric: {self.eval_metric}")
+		
