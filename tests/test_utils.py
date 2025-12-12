@@ -26,3 +26,9 @@ def test_check_X_y_compatible_shapes():
     X_checked, y_checked = check_X_y(X, y)
     assert X_checked.shape == (3, 2)
     assert y_checked.shape == (3,)
+
+def test_check_X_y_incompatible_shapes():
+    X = np.array([[1, 2], [3, 4]])
+    y = np.array([1, 0, 1])
+    with pytest.raises(ValueError, match="do not test_check_X_y_compatible_shapes match"):
+        check_X_y(X, y)
