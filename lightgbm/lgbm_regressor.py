@@ -140,6 +140,7 @@ class LGBMRegressor(BaseEstimator):
 		if not isinstance(self.loss, LossFunction) and isinstance(self.loss_name, str):
 			self.loss = self._make_loss(self.loss_name)
 		self.eval_history_ = []
+		log_message(f"Starting training: {self.params.num_iterations} rounds, learning_rate={self.params.learning_rate}", verbose=self.verbose_eval or 0)
 		rng = np.random.default_rng(self.params.random_state)
 
 		warm_cont = self.warm_start and len(self.trees_) > 0
@@ -250,6 +251,11 @@ class LGBMRegressor(BaseEstimator):
 				val_pred += lr * tree.predict(X_val_proc)
 				metric_val = self._eval_metric(y_val, val_pred)
 				self.eval_history_.append((base_iter + iter_idx, metric_val))
+			else:
+				if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
+					train_loss = self.loss.loss(y, y_pred)
+					log_message(f"Iter {iter_idx}: train_loss={train_loss:.6f} lr={lr:.4f}", verbose=1)
+					log_training_progress(base_iter + iter_idx + 1, base_iter + self.params.num_iterations, train_loss, verbose=self.verbose_eval)
 				if best_iter == -1:
 					best_loss = metric_val
 					best_iter = base_iter + iter_idx
@@ -268,11 +274,11 @@ class LGBMRegressor(BaseEstimator):
 					else:
 						wait_rounds += 1
 						if self.early_stopping_rounds is not None and wait_rounds >= self.early_stopping_rounds:
-							break
+							log_message(f"Early stopping triggered at iter {base_iter + iter_idx} (val={metric_val:.6f})", verbose=self.verbose_eval or 0)
 
 				if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
-					print(f"Iter {iter_idx}: {self.eval_metric}={metric_val:.6f} lr={lr:.4f}")
-
+						log_message(f"Iter {iter_idx}: {self.eval_metric}={metric_val:.6f} lr={lr:.4f}", verbose=1)
+						log_training_progress(base_iter + iter_idx + 1, self.params.num_iterations, metric_val, verbose=self.verbose_eval)
 				for cb in self.callbacks:
 					cb(iter_idx, {"metric": metric_val, "lr": lr})
 
@@ -283,6 +289,7 @@ class LGBMRegressor(BaseEstimator):
 		else:
 			self.best_iteration_ = len(self.trees_) - 1
 
+		log_message(f"Training complete. Trees={len(self.trees_)}; Best iter={self.best_iteration_}", verbose=self.verbose_eval or 0)
 		self._compute_feature_importances()
 		return self
 
