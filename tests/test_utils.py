@@ -1,5 +1,6 @@
 import numpy as np 
 import pandas as pd 
+import pytest
 from lightgbm.utils import ValidateInputData, check_X_y, check_is_fitted, validate_sample_weight
 
 def test_validate_input_accepts_numpy(): 
@@ -13,3 +14,8 @@ def test_validate_input_accepts_pandas():
     result = ValidateInputData(X)
     assert isinstance(result.data, pd.DataFrame)
     assert result.shape == (2, 2)
+
+def test_validate_input_rejects_infinite_values(): 
+    X = np.array([[1, 2], [np.inf, 4]])
+    with pytest.raises(ValueError, match="infinite"):
+        ValidateInputData(X)
