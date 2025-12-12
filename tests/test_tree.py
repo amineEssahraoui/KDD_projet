@@ -88,8 +88,7 @@ def test_tree_with_histogram_mode():
         lambda_l2=1.0,
         min_sum_hessian_in_leaf=0.0,
         min_gain_to_split=0.0,
-        use_histogram=True,
-        max_bins=16
+        use_histogram=True
     )
     tree.fit(X, gradients, hessians)
     predictions = tree.predict(X)
@@ -112,7 +111,7 @@ def test_tree_respects_min_gain_to_split():
     def count_leaves(node):
         if node.is_leaf:
             return 1
-        return count_leaves(node.left_child) + count_leaves(node.right_child)
+        return count_leaves(node.left) + count_leaves(node.right)
     
     leaves_count = count_leaves(tree.root)
     assert leaves_count < 5
