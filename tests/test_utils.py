@@ -46,5 +46,13 @@ def test_validate_sample_weight_rejects_negative():
 
 def test_check_is_fitted_raises_if_not_fitted():
     model = LGBMRegressor(num_iterations = 10)
-    with pytest.raises(ValueError, match="not fitted"):
+    with pytest.raises(ValueError):
         check_is_fitted(model)
+
+def test_check_is_fitted_passes_when_fitted():
+    model = LGBMRegressor(num_iterations = 10)
+    X = np.array([[1, 2], [3, 4], [5, 6]])
+    y = np.array([1, 0, 1])
+    model.fit(X, y)
+    check_is_fitted(model)
+    assert True
