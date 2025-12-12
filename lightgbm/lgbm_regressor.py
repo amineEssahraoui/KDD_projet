@@ -368,6 +368,7 @@ class LGBMRegressor(BaseEstimator):
 			"use_goss": self.use_goss,
 			"top_rate": self.top_rate,
 			"other_rate": self.other_rate,
+			"allow_nan": self.allow_nan,
 			"eval_metric": self.eval_metric,
 		}
 		with open(path, "wb") as f:
