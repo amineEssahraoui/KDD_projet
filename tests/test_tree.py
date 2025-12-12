@@ -11,7 +11,8 @@ def test_tree_can_fit_sample_data():
         num_leaves=10,
         min_data_in_leaf=1,
         lambda_l2=0.1,
-        min_gain_to_split=0.0
+        min_gain_to_split=0.0, 
+        min_sum_hessian_in_leaf=0.0
     )
     tree.fit(X, gradients, hessians)
     assert tree.root is not None
