@@ -73,3 +73,31 @@ def test_validate_hyperparameters_valid():
         min_data_in_leaf=20
    )
    assert True
+
+def test_validate_hyperparameters_negative_num_iterations():
+    with pytest.raises(ValueError):
+        validate_hyperparameters(num_iterations=-10)
+
+def test_validate_hyperparameters_zero_learning_rate():
+    with pytest.raises(ValueError):
+        validate_hyperparameters(learning_rate=0)
+
+def test_validate_hyperparameters_negative_learning_rate():
+    with pytest.raises(ValueError):
+        validate_hyperparameters(learning_rate=-0.1)
+
+def test_validate_hyperparameters_invalid_max_depth():
+    with pytest.raises(ValueError):
+        validate_hyperparameters(max_depth=0)
+
+def test_validate_hyperparameters_accepts_max_depth_minus_one():
+    validate_hyperparameters(max_depth=-1)
+    assert True
+
+def test_validate_hyperparameters_low_num_leaves():
+    with pytest.raises(ValueError):
+        validate_hyperparameters(num_leaves=1)
+
+def test_validate_hyperparameters_zero_min_data_in_leaf():
+    with pytest.raises(ValueError):
+        validate_hyperparameters(min_data_in_leaf=0)
