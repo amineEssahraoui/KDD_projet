@@ -401,6 +401,7 @@ class LGBMRegressor(BaseEstimator):
 			other_rate=state.get("other_rate", 0.1),
 			eval_metric=state.get("eval_metric", "mse"),
 			loss=state.get("loss_obj", state.get("loss_name", "mse")),
+			allow_nan=state.get("allow_nan", True),
 			warm_start=state.get("warm_start", False),
 		)
 		model.params = state["params"]
