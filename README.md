@@ -1,10 +1,10 @@
-# 🌳 LightGBM Package - Implémentation from Scratch
+# LightGBM Package - Implémentation from Scratch
 
 Implementation complète de LightGBM (Light Gradient Boosting Machine) dans le cadre d'un projet académique sur les algorithmes d'arbres de décision.
 
 ---
 
-## 📁 Structure du Projet
+## Structure du Projet
 
 ```
 lightgbm_package/
@@ -20,12 +20,13 @@ lightgbm_package/
 
 ---
 
-## 📦 Description des Fichiers
+## Description des Fichiers
 
 ### **1. Package Principal : `lightgbm/`**
 
 #### **`__init__.py`**
 Fichier d'initialisation du package Python. Expose les classes principales pour faciliter l'import :
+
 ```python
 from lightgbm import LGBMClassifier, LGBMRegressor
 ```
@@ -49,6 +50,7 @@ from lightgbm import LGBMClassifier, LGBMRegressor
 #### **`lgbm_classifier.py`** - Classifier Principal
 **Rôle :** Implémentation du modèle de classification LightGBM.
 
+
 **Contenu :**
 - `LGBMClassifier` : Classe héritant de `BaseEstimator`
   - Classification binaire et multiclasse
@@ -58,6 +60,7 @@ from lightgbm import LGBMClassifier, LGBMRegressor
   - Gestion des loss functions appropriées (Binary/Multiclass Cross-Entropy)
 
 **Utilisation typique :**
+
 ```python
 clf = LGBMClassifier(num_iterations=100, learning_rate=0.1)
 clf.fit(X_train, y_train)
@@ -75,6 +78,7 @@ predictions = clf.predict(X_test)
   - Méthode `fit(X, y)` : entraînement
   - Méthode `predict(X)` : prédiction des valeurs
   - Utilise MSE (Mean Squared Error) comme fonction de perte
+
 
 **Utilisation typique :**
 ```python
@@ -258,73 +262,6 @@ Tests pour GOSS :
 
 ---
 
-### **3. Examples : `examples/`**
-
-#### **`classification_example.ipynb`**
-Notebook de démonstration pour la classification :
-- Chargement d'un dataset (Iris, Titanic)
-- Entraînement du LGBMClassifier
-- Évaluation des performances
-- Visualisation des résultats
-- Comparaison avec autres algorithmes
-
----
-
-#### **`regression_example.ipynb`**
-Notebook de démonstration pour la régression :
-- Chargement d'un dataset (Boston Housing, California Housing)
-- Entraînement du LGBMRegressor
-- Évaluation (MSE, MAE, R²)
-- Visualisation des prédictions vs valeurs réelles
-
----
-
-#### **`comparison_with_sklearn.ipynb`**
-Notebook de comparaison :
-- Benchmark LightGBM vs Sklearn GradientBoosting
-- Comparaison de vitesse d'entraînement
-- Comparaison de précision
-- Analyse des hyperparamètres
-
----
-
-### **4. Documentation : `docs/`**
-
-#### **`lightgbm_theory.md`**
-Documentation théorique complète :
-- Principe du Gradient Boosting
-- Innovations de LightGBM (leaf-wise, histograms, GOSS, EFB)
-- Formules mathématiques
-- Références bibliographiques
-
----
-
-#### **`api_reference.md`**
-Référence complète de l'API :
-- Liste de toutes les classes et méthodes
-- Paramètres détaillés
-- Valeurs de retour
-- Exemples d'utilisation
-
----
-
-#### **`user_guide.md`**
-Guide utilisateur :
-- Installation
-- Premiers pas
-- Tutoriels pas à pas
-- Bonnes pratiques
-- FAQ
-
----
-
-### **5. Fichiers Racine**
-
-#### **`README.md`**
-Ce fichier - Vue d'ensemble du projet et description de tous les fichiers.
-
----
-
 #### **`setup.py`**
 Script d'installation du package :
 - Configuration pour pip install
@@ -332,82 +269,8 @@ Script d'installation du package :
 - Dépendances
 - Point d'entrée
 
-**Utilisation :**
-```bash
-pip install -e .
-```
-
 ---
 
 #### **`requirements.txt`**
 Liste des dépendances Python nécessaires :
 ```
-numpy>=1.19.0
-pandas>=1.1.0
-scikit-learn>=0.23.0
-matplotlib>=3.3.0
-jupyter>=1.0.0
-pytest>=6.0.0
-```
-
-**Installation :**
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 🚀 Installation
-
-```bash
-# Cloner le repository
-git clone https://github.com/votre-repo/lightgbm_package.git
-cd lightgbm_package
-
-# Installer les dépendances
-pip install -r requirements.txt
-
-# Installer le package en mode développement
-pip install -e .
-```
-
----
-
-## 📖 Utilisation Rapide
-
-```python
-from lightgbm import LGBMClassifier, LGBMRegressor
-
-# Classification
-clf = LGBMClassifier(num_iterations=100, learning_rate=0.1)
-clf.fit(X_train, y_train)
-predictions = clf.predict(X_test)
-
-# Régression
-reg = LGBMRegressor(num_iterations=100, learning_rate=0.1)
-reg.fit(X_train, y_train)
-predictions = reg.predict(X_test)
-```
-
----
-
-## 👥 Auteurs
-
-Projet réalisé dans le cadre du cours [Nom du Cours] par :
-- [Nom Étudiant 1]
-- [Nom Étudiant 2]
-- [Nom Étudiant 3]
-
----
-
-## 📚 Références
-
-- [LightGBM: A Highly Efficient Gradient Boosting Decision Tree](https://papers.nips.cc/paper/6907-lightgbm-a-highly-efficient-gradient-boosting-decision-tree.pdf)
-- [Documentation officielle LightGBM](https://lightgbm.readthedocs.io/)
-- [Gradient Boosting Machines - Friedman](https://statweb.stanford.edu/~jhf/ftp/trebst.pdf)
-
----
-
-## 📄 Licence
-
-Ce projet est réalisé à des fins éducatives dans le cadre d'un projet académique.
