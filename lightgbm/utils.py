@@ -42,13 +42,14 @@ def ValidateInputData(X , allow_nan: bool = True) -> np.ndarray:
 
     return X
 
-def check_X_y(X, y):
+def check_X_y(X, y, allow_nan: bool = True):
     """
     Vérifie que X et y ont des dimensions compatibles
     
     Args:
         X : array-like, shape (n_samples, n_features)
         y : array-like, shape (n_samples,)
+        allow_nan : bool (default True) whether to allow NaNs
         
     Returns:
         None
@@ -57,7 +58,7 @@ def check_X_y(X, y):
         ValueError si les dimensions ne sont pas compatibles
     """
     
-    X = ValidateInputData(X , allow_nan=True)
+    X = ValidateInputData(X , allow_nan=allow_nan)
     if isinstance(y, (pd.Series, pd.DataFrame)):
         y = y.values
     y = np.asarray(y)
@@ -74,7 +75,7 @@ def check_X_y(X, y):
     if np.any(np.isinf(y)):
         raise ValueError("y contains infinite values.")
     
-    if np.any(np.isnan(y)):
+    if not allow_nan and np.any(np.isnan(y)):
         raise ValueError("y contains NaN values.")
     
     return X, y
