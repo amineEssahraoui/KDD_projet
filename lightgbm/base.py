@@ -71,7 +71,7 @@ class BaseEstimator(abc.ABC):
 			random_state=random_state,
 		)
 
-	# --- Abstract API -------------------------------------------------
+
 	@abc.abstractmethod
 	def fit(self, X: np.ndarray, y: np.ndarray) -> "BaseEstimator":
 		raise NotImplementedError
@@ -80,7 +80,7 @@ class BaseEstimator(abc.ABC):
 	def predict(self, X: np.ndarray) -> np.ndarray:
 		raise NotImplementedError
 
-	# --- Shared helpers ----------------------------------------------
+
 	def _check_arrays(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> np.ndarray:
 		X = np.asarray(X, dtype=float)
 		if X.ndim != 2:
@@ -93,7 +93,6 @@ class BaseEstimator(abc.ABC):
 		return X
 
 	def _initial_prediction(self, y: np.ndarray) -> float:
-		# Using the mean aligns with squared-error optimal constant prediction.
 		return float(np.mean(y))
 
 	def _row_subsample(self, n_samples: int) -> np.ndarray:
@@ -111,6 +110,5 @@ class BaseEstimator(abc.ABC):
 		return np.sort(rng.choice(n_features, size=size, replace=False))
 
 	def _aggregate_prediction(self, init_pred: float, trees: List) -> np.ndarray:
-		# Accumulate prediction from all fitted trees.
 		return init_pred + sum(tree.predict for tree in trees)
 
