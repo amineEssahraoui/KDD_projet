@@ -13,7 +13,7 @@ from .goss import GOSSSampler
 from .histogramme import HistogramBinner
 from .metrics import mse_score, mae_score, r2_score, rmse_score, mape_score
 from .loss_functions import HUBERLoss, MAELoss, MSELoss, QUANTILELoss, RMSELoss, LossFunction
-from .utils import ValidateInputData, check_X_y, validate_hyperparameters, check_is_fitted, log_message, log_training_progress
+from .utils import ValidateInputData, check_X_y, validate_hyperparameters, validate_sample_weight, check_is_fitted, log_message, log_training_progress
 from .tree import DecisionTree
 
 
