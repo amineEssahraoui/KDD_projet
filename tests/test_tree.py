@@ -96,7 +96,7 @@ def test_tree_with_histogram_mode():
 
 def test_tree_respects_min_gain_to_split():
     X = np.random.rand(20, 2)
-    gradients = np.random.randn(20)
+    gradients = np.random.randn(20) * 0.01
     hessians = np.ones(20)
 
     tree = DecisionTree (
