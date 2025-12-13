@@ -30,6 +30,7 @@ def _try_fetch_openml(name: str, version: int | None = None):
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
 from lightgbm.lgbm_regressor import LGBMRegressor  # type: ignore
+from lightgbm.loss_functions import HUBERLoss, QUANTILELoss
 
 
 def parse_args():
@@ -41,10 +42,6 @@ def parse_args():
     p.add_argument("--plot-dir", type=str, default="artifacts/benchmark_plots", help="Directory to save benchmark plots")
     return p.parse_args()
 
-
-# -------------------------------------------------------
-# BENCHMARK DATASETS
-# -------------------------------------------------------
 
 def _maybe_cap(df: pd.DataFrame, target: pd.Series, max_rows: int, seed: int):
     """Optionally downsample rows to speed up benchmarking."""
@@ -99,10 +96,6 @@ def load_all_benchmarks(seed=42, max_rows=0, skip_synthetic=False):
 
     return datasets
 
-
-# -------------------------------------------------------
-# MODELS
-# -------------------------------------------------------
 
 def make_models(seed=42):
 
@@ -160,8 +153,7 @@ def make_models(seed=42):
         (
             "LightGBM-huber_robust",
             LGBMRegressor(
-                loss="huber",
-                huber_delta=1.0,
+                loss=HUBERLoss(delta=1.0),
                 learning_rate=0.1,
                 num_iterations=200,
                 max_depth=6,
@@ -181,8 +173,7 @@ def make_models(seed=42):
         (
             "LightGBM-quantile_p90",
             LGBMRegressor(
-                loss="quantile",
-                quantile_alpha=0.9,
+                loss=QUANTILELoss(quantile=0.9),
                 learning_rate=0.08,
                 num_iterations=300,
                 max_depth=5,
@@ -244,10 +235,6 @@ def make_models(seed=42):
     ]
 
 
-# -------------------------------------------------------
-# BENCHMARK RUNNER
-# -------------------------------------------------------
-
 def evaluate(name, model, X_train, X_test, y_train, y_test):
     model.fit(X_train, y_train)
     pred = model.predict(X_test)
@@ -296,7 +283,6 @@ def plot_benchmarks(df: pd.DataFrame, out_dir: Path) -> None:
     plt.savefig(out_dir / "mean_mae.png", dpi=150)
     plt.close()
 
-    # Wins per dataset (highest R2)
     winners = df.loc[df.groupby("Dataset")["R2"].idxmax()]
     wins = winners["Model"].value_counts().reset_index()
     wins.columns = ["Model", "Wins"]
@@ -309,7 +295,6 @@ def plot_benchmarks(df: pd.DataFrame, out_dir: Path) -> None:
     plt.savefig(out_dir / "wins.png", dpi=150)
     plt.close()
 
-    # Per-dataset R2 heatmap
     pivot = df.pivot(index="Dataset", columns="Model", values="R2")
     plt.figure(figsize=(10, max(4, 0.4 * len(pivot))))
     im = plt.imshow(pivot, aspect="auto", cmap="viridis")
@@ -364,10 +349,6 @@ def main():
 
         leaderboard.extend(dataset_results)
 
-    # -------------------------------------------------------
-    # FINAL SCOREBOARD
-    # -------------------------------------------------------
-
     df = pd.DataFrame(leaderboard)
     print("\n================== LEADERBOARD ==================")
     print(df.sort_values(["Dataset", "R2"], ascending=[True, False]))
@@ -378,10 +359,6 @@ def main():
     print("\n================== WINS PER DATASET ==================")
     winners = df.loc[df.groupby("Dataset")["R2"].idxmax()]
     print(winners[["Dataset", "Model", "R2"]])
-
-    # --------------------
-    # PLOTS
-    # --------------------
     plot_benchmarks(df, Path(args.plot_dir))
     print(f"\nSaved plots to {Path(args.plot_dir).resolve()}")
 
