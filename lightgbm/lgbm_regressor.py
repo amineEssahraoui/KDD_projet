@@ -248,39 +248,39 @@ class LGBMRegressor(BaseEstimator):
 			y_pred += lr * tree.predict(X_proc)
 
 			if eval_set is not None:
-				val_pred += lr * tree.predict(X_val_proc)
-				metric_val = self._eval_metric(y_val, val_pred)
-				self.eval_history_.append((base_iter + iter_idx, metric_val))
-			else:
-				if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
-					train_loss = self.loss.loss(y, y_pred)
-					log_message(f"Iter {iter_idx}: train_loss={train_loss:.6f} lr={lr:.4f}", verbose=1)
-					log_training_progress(base_iter + iter_idx + 1, base_iter + self.params.num_iterations, train_loss, verbose=self.verbose_eval)
-				if best_iter == -1:
-					best_loss = metric_val
-					best_iter = base_iter + iter_idx
-					best_trees = list(self.trees_)
-					best_lrs = list(self.tree_learning_rates_)
-					wait_rounds = 0
-				else:
-					improvement = best_loss - metric_val
-					min_required = max(self.early_stopping_min_delta, abs(best_loss) * self.early_stopping_min_delta_rel)
-					if improvement > min_required:
+					val_pred += lr * tree.predict(X_val_proc)
+					metric_val = self._eval_metric(y_val, val_pred)
+					self.eval_history_.append((base_iter + iter_idx, metric_val))
+					if best_iter == -1:
 						best_loss = metric_val
 						best_iter = base_iter + iter_idx
 						best_trees = list(self.trees_)
 						best_lrs = list(self.tree_learning_rates_)
 						wait_rounds = 0
 					else:
-						wait_rounds += 1
-						if self.early_stopping_rounds is not None and wait_rounds >= self.early_stopping_rounds:
-							log_message(f"Early stopping triggered at iter {base_iter + iter_idx} (val={metric_val:.6f})", verbose=self.verbose_eval or 0)
+						improvement = best_loss - metric_val
+						min_required = max(self.early_stopping_min_delta, abs(best_loss) * self.early_stopping_min_delta_rel)
+						if improvement > min_required:
+							best_loss = metric_val
+							best_iter = base_iter + iter_idx
+							best_trees = list(self.trees_)
+							best_lrs = list(self.tree_learning_rates_)
+							wait_rounds = 0
+						else:
+							wait_rounds += 1
+							if self.early_stopping_rounds is not None and wait_rounds >= self.early_stopping_rounds:
+								log_message(f"Early stopping triggered at iter {base_iter + iter_idx} (val={metric_val:.6f})", verbose=self.verbose_eval or 0)
 
-				if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
+					if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
 						log_message(f"Iter {iter_idx}: {self.eval_metric}={metric_val:.6f} lr={lr:.4f}", verbose=1)
 						log_training_progress(base_iter + iter_idx + 1, self.params.num_iterations, metric_val, verbose=self.verbose_eval)
-				for cb in self.callbacks:
-					cb(iter_idx, {"metric": metric_val, "lr": lr})
+					for cb in self.callbacks:
+						cb(iter_idx, {"metric": metric_val, "lr": lr})
+			else:
+				if self.verbose_eval is not None and iter_idx % self.verbose_eval == 0:
+					train_loss = self.loss.loss(y, y_pred)
+					log_message(f"Iter {iter_idx}: train_loss={train_loss:.6f} lr={lr:.4f}", verbose=1)
+					log_training_progress(base_iter + iter_idx + 1, base_iter + self.params.num_iterations, train_loss, verbose=self.verbose_eval)
 
 		if eval_set is not None and best_iter >= 0:
 			self.trees_ = best_trees
