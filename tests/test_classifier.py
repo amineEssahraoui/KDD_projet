@@ -17,9 +17,7 @@ from lightgbm import LGBMClassifier
 from lightgbm.utils import accuracy_score, train_test_split
 
 
-# =============================================================================
 # Test Data Generation (No sklearn)
-# =============================================================================
 
 def make_binary_classification(n_samples=300, n_features=10, seed=42):
     """Generate synthetic binary classification data."""
@@ -48,9 +46,7 @@ def make_multiclass_classification(n_samples=300, n_features=10, n_classes=3, se
     return X, y
 
 
-# =============================================================================
 # Binary Classification Tests
-# =============================================================================
 
 class TestLGBMClassifierBinary:
     """Test LGBMClassifier on binary classification."""
@@ -130,9 +126,7 @@ class TestLGBMClassifierBinary:
         assert np.isclose(clf.feature_importances_.sum(), 1.0)
 
 
-# =============================================================================
 # Multiclass Classification Tests
-# =============================================================================
 
 class TestLGBMClassifierMulticlass:
     """Test LGBMClassifier on multiclass classification."""
@@ -180,9 +174,7 @@ class TestLGBMClassifierMulticlass:
         assert set(preds).issubset({0, 1, 2})
 
 
-# =============================================================================
 # Early Stopping Tests
-# =============================================================================
 
 class TestLGBMClassifierEarlyStopping:
     """Test early stopping functionality."""
@@ -226,9 +218,7 @@ class TestLGBMClassifierEarlyStopping:
         assert len(preds) == len(y_val)
 
 
-# =============================================================================
 # Advanced Features Tests
-# =============================================================================
 
 class TestLGBMClassifierAdvanced:
     """Test advanced features."""
@@ -302,9 +292,7 @@ class TestLGBMClassifierAdvanced:
         assert len(preds) == len(y)
 
 
-# =============================================================================
 # Serialization Tests
-# =============================================================================
 
 class TestLGBMClassifierSerialization:
     """Test model serialization."""
@@ -333,9 +321,7 @@ class TestLGBMClassifierSerialization:
             os.unlink(temp_path)
 
 
-# =============================================================================
 # Edge Cases Tests
-# =============================================================================
 
 class TestLGBMClassifierEdgeCases:
     """Test edge cases."""
