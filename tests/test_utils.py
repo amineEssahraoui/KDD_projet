@@ -8,6 +8,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import sys
+from pathlib import Path
+_repo_root = Path(__file__).resolve().parents[1]
+src_path = str(_repo_root / "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
 from lightgbm import LGBMRegressor
 from lightgbm.utils import (
     check_array,
@@ -23,10 +30,8 @@ from lightgbm.utils import (
     train_test_split,
 )
 
+# check_array Tes
 
-# =============================================================================
-# check_array Tests
-# =============================================================================
 
 def test_check_array_accepts_numpy():
     """Test that check_array accepts numpy arrays."""
@@ -56,11 +61,9 @@ def test_check_array_handles_nan_when_allowed():
     X = np.array([[1, 2], [np.nan, 4]])
     result = check_array(X, allow_nan=True)
     assert np.isnan(result[1, 0])
+    
+# check_X_y Tes
 
-
-# =============================================================================
-# check_X_y Tests
-# =============================================================================
 
 def test_check_X_y_compatible_shapes():
     """Test that compatible X and y pass validation."""
@@ -77,11 +80,9 @@ def test_check_X_y_incompatible_shapes():
     y = np.array([1, 0, 1])  # 3 samples vs 2 in X
     with pytest.raises(ValueError, match="match|inconsistent"):
         check_X_y(X, y)
+        
+# check_sample_weight Tes
 
-
-# =============================================================================
-# check_sample_weight Tests
-# =============================================================================
 
 def test_check_sample_weight_valid():
     """Test that valid sample weights pass validation."""
@@ -101,11 +102,9 @@ def test_check_sample_weight_none_returns_none():
     """Test that None returns None."""
     result = check_sample_weight(None, n_samples=5)
     assert result is None
+    
+# check_is_fitted Tes
 
-
-# =============================================================================
-# check_is_fitted Tests
-# =============================================================================
 
 def test_check_is_fitted_raises_if_not_fitted():
     """Test that unfitted model should ideally raise error.
@@ -135,11 +134,9 @@ def test_check_is_fitted_passes_when_fitted():
     model.fit(X, y)
     # Should not raise
     check_is_fitted(model)
+    
+# validate_hyperparameters Tes
 
-
-# =============================================================================
-# validate_hyperparameters Tests
-# =============================================================================
 
 def test_validate_hyperparameters_valid():
     """Test that valid hyperparameters pass validation."""
@@ -235,11 +232,9 @@ def test_validate_hyperparameters_negative_min_data_in_leaf():
             num_leaves=31,
             min_data_in_leaf=-1
         )
+        
+# Metrics Tes
 
-
-# =============================================================================
-# Metrics Tests
-# =============================================================================
 
 def test_mean_squared_error():
     """Test MSE calculation."""
@@ -274,11 +269,9 @@ def test_accuracy_score():
     
     y_pred = np.array([1, 1, 1, 0, 1])  # 1 wrong
     assert accuracy_score(y_true, y_pred) == 0.8
+    
+# train_test_split Tes
 
-
-# =============================================================================
-# train_test_split Tests
-# =============================================================================
 
 def test_train_test_split_default():
     """Test train_test_split with default parameters."""
