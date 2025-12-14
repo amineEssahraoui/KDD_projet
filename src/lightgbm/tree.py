@@ -116,8 +116,8 @@ class SplitInfo:
     gain: float = -np.inf
     feature_idx: int = 0
     threshold: float = 0.0
-    left_indices: np.ndarray = None
-    right_indices: np.ndarray = None
+    left_indices: Optional[np.ndarray] = None
+    right_indices: Optional[np.ndarray] = None
     left_value: float = 0.0
     right_value: float = 0.0
 
