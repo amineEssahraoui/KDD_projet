@@ -14,6 +14,7 @@ import pytest
 import sys
 import os
 
+
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
@@ -28,9 +29,7 @@ from lightgbm.loss_functions import (
 from lightgbm.tree import DecisionTree
 
 
-# =============================================================================
 # GRADIENT & HESSIAN VALIDATION
-# =============================================================================
 
 class TestGradientHessianMSE:
     """Validate MSE gradient and hessian against manual calculations."""
@@ -241,9 +240,7 @@ class TestGradientHessianMultiClass:
         )
 
 
-# =============================================================================
 # SPLIT GAIN FORMULA VALIDATION
-# =============================================================================
 
 class TestSplitGainFormula:
     """Validate the split gain formula used in tree building."""
@@ -313,9 +310,7 @@ class TestSplitGainFormula:
         print(f"Gain with λ={lambda_l2}: {expected_gain:.4f}")
 
 
-# =============================================================================
 # PREDICTION AGGREGATION VALIDATION
-# =============================================================================
 
 class TestPredictionAggregation:
     """Validate that predictions are correctly aggregated."""
@@ -427,9 +422,7 @@ class TestInitialPrediction:
         np.testing.assert_almost_equal(actual_init, expected_init, decimal=10)
 
 
-# =============================================================================
 # LEAF VALUE COMPUTATION
-# =============================================================================
 
 class TestLeafValueFormula:
     """Validate leaf value computation formula."""
@@ -466,9 +459,7 @@ class TestLeafValueFormula:
         np.testing.assert_almost_equal(expected_leaf_value, 0.25, decimal=10)
 
 
-# =============================================================================
 # RUN TESTS
-# =============================================================================
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short"])
