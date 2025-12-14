@@ -5,6 +5,12 @@ from __future__ import annotations
 import heapq
 from dataclasses import dataclass
 from typing import Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor
+
+try:
+	import scipy.sparse as sp
+except ImportError:  # SciPy is optional; sparse support degrades gracefully
+	sp = None
 
 import numpy as np
 
@@ -44,6 +50,7 @@ class DecisionTree:
 		monotone_constraints: Optional[np.ndarray] = None,
 		categorical_features: Optional[set[int]] = None,
 		default_left: bool = True,
+		n_jobs: int = 1,
 	) -> None:
 		self.max_depth = max_depth
 		self.num_leaves = num_leaves
@@ -58,13 +65,19 @@ class DecisionTree:
 		self.monotone_constraints = monotone_constraints
 		self.categorical_features = categorical_features or set()
 		self.default_left = default_left
+		self.n_jobs = max(1, int(n_jobs))
 		self.root = Node()
 		self.n_features_ = None
 		self.feature_importances_ = None
 		self.split_counts_ = None
+		self._is_sparse = False
 
 	def fit(self, X: np.ndarray, gradients: np.ndarray, hessians: np.ndarray) -> "DecisionTree":
-		X = np.asarray(X, dtype=float)
+		self._is_sparse = sp is not None and sp.issparse(X)
+		if self._is_sparse and sp is not None and not sp.isspmatrix_csc(X):
+			X = X.tocsc()
+		else:
+			X = np.asarray(X, dtype=float)
 		gradients = np.asarray(gradients, dtype=float)
 		hessians = np.asarray(hessians, dtype=float)
 		self.n_features_ = X.shape[1]
@@ -185,28 +198,51 @@ class DecisionTree:
 			size = max(1, int(n_features * self.colsample))
 			feature_indices = np.sort(rng.choice(feature_indices, size=size, replace=False))
 
-		best_gain = 0.0
-		best_split = None
 		G_total = gradients[indices].sum()
 		H_total = hessians[indices].sum()
 
-		for feat_idx in feature_indices:
+		def _eval_feature(feat_idx: int) -> Tuple[float, Optional[Tuple[int, float, np.ndarray, np.ndarray]]]:
 			if feat_idx in self.categorical_features:
-				gain, split = self._best_split_categorical(X, gradients, hessians, indices, feat_idx, G_total, H_total)
-			else:
-				gain, split = self._best_split_numeric(X, gradients, hessians, indices, feat_idx, G_total, H_total)
-			if gain > best_gain:
-				best_gain = gain
-				best_split = split
+				return self._best_split_categorical(X, gradients, hessians, indices, feat_idx, G_total, H_total)
+			return self._best_split_numeric(X, gradients, hessians, indices, feat_idx, G_total, H_total)
+
+		best_gain = 0.0
+		best_split = None
+		if self.n_jobs <= 1 or len(feature_indices) == 1:
+			for feat_idx in feature_indices:
+				gain, split = _eval_feature(feat_idx)
+				if gain > best_gain:
+					best_gain = gain
+					best_split = split
+		else:
+			max_workers = min(self.n_jobs, len(feature_indices))
+			with ThreadPoolExecutor(max_workers=max_workers) as executor:
+				for gain, split in executor.map(_eval_feature, feature_indices):
+					if gain > best_gain:
+						best_gain = gain
+						best_split = split
 
 		return best_gain, best_split
 
 	def predict(self, X: np.ndarray) -> np.ndarray:
-		X = np.asarray(X, dtype=float)
-		preds = np.empty(len(X))
-		for i, row in enumerate(X):
+		if self._is_sparse and sp is not None and sp.issparse(X):
+			X_work = X.tocsr()
+		else:
+			X_work = np.asarray(X, dtype=float)
+		preds = np.empty(X_work.shape[0])
+		for i in range(X_work.shape[0]):
+			row = X_work.getrow(i).toarray().ravel() if self._is_sparse and sp is not None else X_work[i]
 			preds[i] = self.root.predict_one(row)
 		return preds
+
+	def _get_column(self, X: np.ndarray, indices: np.ndarray, feat_idx: int) -> np.ndarray:
+		"""Extract a feature column for a subset, handling sparse inputs."""
+		if self._is_sparse and sp is not None and sp.issparse(X):
+			col = X[indices, feat_idx]
+			if sp.isspmatrix(col):
+				return np.asarray(col.toarray()).ravel()
+			return np.asarray(col).ravel()
+		return X[indices, feat_idx]
 
 	def _best_split_numeric(
 		self,
@@ -218,7 +254,7 @@ class DecisionTree:
 		G_total: float,
 		H_total: float,
 	) -> Tuple[float, Optional[Tuple[int, float, np.ndarray, np.ndarray]]]:
-		values = X[indices, feat_idx]
+		values = self._get_column(X, indices, feat_idx)
 		nan_mask = np.isnan(values)
 		nan_indices = indices[nan_mask]
 		values_nonan = values[~nan_mask]
@@ -382,7 +418,7 @@ class DecisionTree:
 		G_total: float,
 		H_total: float,
 	) -> Tuple[float, Optional[Tuple[int, float, np.ndarray, np.ndarray]]]:
-		values = X[indices, feat_idx].astype(int)
+		values = self._get_column(X, indices, feat_idx).astype(int)
 		unique_cats, inv = np.unique(values, return_inverse=True)
 		if len(unique_cats) <= 1:
 			return 0.0, None

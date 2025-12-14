@@ -28,4 +28,4 @@ def mape_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 	y_true = np.asarray(y_true)
 	y_pred = np.asarray(y_pred)
 	eps = 1e-15
-	return float(np.mean(np.abs((y_true - y_pred) / (y_true + eps))) * 100	)
+	return float(np.mean(np.abs((y_true - y_pred) / (y_true + eps))) * 100)

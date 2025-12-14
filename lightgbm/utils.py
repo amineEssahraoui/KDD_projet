@@ -5,6 +5,11 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
+try:
+    import scipy.sparse as sp
+except ImportError:  # SciPy is optional
+    sp = None
+
 def ValidateInputData(X , allow_nan: bool = True) -> np.ndarray: 
     """
     Valide et convertit X en numpy array
@@ -23,13 +28,22 @@ def ValidateInputData(X , allow_nan: bool = True) -> np.ndarray:
         X = X.values
     elif isinstance(X, pd.Series):
         X = X.to_numpy().reshape(-1, 1)
+    elif sp is not None and sp.issparse(X):
+        # Keep sparse inputs as-is to avoid densification; shape checks apply below.
+        pass
     elif not isinstance(X, np.ndarray):
-        raise ValueError("Input data must be a numpy array or pandas DataFrame/Series.")
-    
-    if X.ndim == 1: 
-        X = X.reshape(-1,1)
-    elif X.ndim != 2: 
-        raise ValueError("Input data must be 1D or 2D.")
+        raise ValueError("Input data must be a numpy array, pandas DataFrame/Series, or scipy sparse matrix.")
+
+    if sp is not None and sp.issparse(X):
+        if X.ndim != 2:
+            raise ValueError("Input data must be 2D for sparse matrices.")
+    else:
+        if isinstance(X, np.matrix):
+            X = np.asarray(X)
+        if X.ndim == 1: 
+            X = X.reshape(-1,1)
+        elif X.ndim != 2: 
+            raise ValueError("Input data must be 1D or 2D.")
     
     if np.any(np.isinf(X)):
         raise ValueError("Input data contains infinite values.")

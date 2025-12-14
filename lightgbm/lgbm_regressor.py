@@ -7,6 +7,11 @@ from typing import Callable, List, Optional, Tuple, Sequence, Union
 
 import numpy as np
 
+try:
+	import scipy.sparse as sp
+except ImportError:  # SciPy is optional; sparse support degrades gracefully
+	sp = None
+
 from .base import BaseEstimator
 from .efb import ExclusiveFeatureBundler
 from .goss import GOSSSampler
@@ -57,6 +62,7 @@ class LGBMRegressor(BaseEstimator):
 		monotone_constraints: Optional[Sequence[int]] = None,
 		categorical_features: Optional[Sequence[int]] = None,
 		default_left: bool = True,
+		n_jobs: int = 1,
 		eval_metric: str = "mse",
 		verbose_eval: Optional[int] = None,
 		callbacks: Optional[Sequence[Callable[[int, dict], None]]] = None,
@@ -109,6 +115,7 @@ class LGBMRegressor(BaseEstimator):
 		self.other_rate = other_rate
 		self.use_efb = use_efb
 		self.efb_conflict_rate = efb_conflict_rate
+		self.n_jobs = max(1, int(n_jobs))
 		self.warm_start = warm_start
 		self.early_stopping_rounds = early_stopping_rounds
 		self.early_stopping_min_delta = early_stopping_min_delta
@@ -127,10 +134,19 @@ class LGBMRegressor(BaseEstimator):
 		self.tree_learning_rates_: list[float] = []
 		self._efb: Optional[ExclusiveFeatureBundler] = None
 		self._binner: Optional[HistogramBinner] = None
+		self._trained_sparse: bool = False
 
 
 	def fit(self, X: np.ndarray, y: np.ndarray, eval_set: Optional[Tuple[np.ndarray, np.ndarray]] = None) -> "LGBMRegressor":
+		is_sparse = sp is not None and sp.issparse(X)
+		if is_sparse:
+			X = X.tocsc()
+		self._trained_sparse = is_sparse
 		X, y = check_X_y(X, y, allow_nan=self.allow_nan)
+		if is_sparse and (self.use_efb or self.use_histogram):
+			# EFB and quantile binning expect dense matrices; fall back to dense when requested.
+			X = X.toarray()
+			self._trained_sparse = False
 		validate_hyperparameters(num_iterations=self.params.num_iterations,
 					learning_rate=self.params.learning_rate,
 					max_depth=self.params.max_depth,
@@ -240,6 +256,7 @@ class LGBMRegressor(BaseEstimator):
 				monotone_constraints=self.monotone_constraints,
 				categorical_features=self.categorical_features,
 				default_left=self.default_left,
+				n_jobs=self.n_jobs,
 			)
 			tree.fit(X_sub, grad_sub, hess_sub)
 			self.trees_.append(tree)
@@ -299,6 +316,11 @@ class LGBMRegressor(BaseEstimator):
 		check_is_fitted(self)
 		# Validate input X
 		X = ValidateInputData(X, allow_nan=self.allow_nan)
+		if sp is not None and sp.issparse(X):
+			if self._trained_sparse:
+				X = X.tocsc()
+			else:
+				X = X.toarray()
 		if self.n_features_ is not None and X.shape[1] != self.n_features_:
 			raise ValueError("Input feature dimension does not match training data")
 		X_proc = X
@@ -377,6 +399,8 @@ class LGBMRegressor(BaseEstimator):
 			"other_rate": self.other_rate,
 			"allow_nan": self.allow_nan,
 			"eval_metric": self.eval_metric,
+			"n_jobs": self.n_jobs,
+			"trained_sparse": self._trained_sparse,
 		}
 		with open(path, "wb") as f:
 			pickle.dump(state, f)
@@ -410,6 +434,7 @@ class LGBMRegressor(BaseEstimator):
 			loss=state.get("loss_obj", state.get("loss_name", "mse")),
 			allow_nan=state.get("allow_nan", True),
 			warm_start=state.get("warm_start", False),
+			n_jobs=state.get("n_jobs", 1),
 		)
 		model.params = state["params"]
 		model.trees_ = state["trees"]
@@ -422,6 +447,7 @@ class LGBMRegressor(BaseEstimator):
 		model.bundled_n_features_ = state.get("bundled_n_features")
 		model.tree_learning_rates_ = state.get("tree_learning_rates", [])
 		model.loss_name = state.get("loss_name", model.loss_name)
+		model._trained_sparse = state.get("trained_sparse", False)
 		loaded_loss_obj = state.get("loss_obj")
 		if loaded_loss_obj is not None:
 			model.loss = loaded_loss_obj

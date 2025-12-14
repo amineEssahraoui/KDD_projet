@@ -93,7 +93,6 @@ def load_all_benchmarks(seed=42, max_rows=0, skip_synthetic=False):
         h_data, h_target = _maybe_cap(h_data, h_target, max_rows, seed)
         datasets.append(("HousePrices", h_data, h_target))
 
-
     return datasets
 
 
@@ -171,26 +170,6 @@ def make_models(seed=42):
             ),
         ),
         (
-            "LightGBM-quantile_p90",
-            LGBMRegressor(
-                loss=QUANTILELoss(quantile=0.9),
-                learning_rate=0.08,
-                num_iterations=300,
-                max_depth=5,
-                num_leaves=25,
-                min_data_in_leaf=20,
-                min_sum_hessian_in_leaf=1e-3,
-                lambda_l2=0.2,
-                lambda_l1=0.05,
-                subsample=0.8,
-                colsample=0.8,
-                use_histogram=True,
-                n_bins=64,
-                use_efb=False,
-                use_goss=False,
-            ),
-        ),
-        (
             "LightGBM-regularized_shallow",
             LGBMRegressor(
                 loss="mse",
@@ -230,6 +209,72 @@ def make_models(seed=42):
                 use_goss=True,
                 top_rate=0.2,
                 other_rate=0.1,
+                n_jobs=4,
+            ),
+        ),
+        (
+            "LightGBM-goss_parallel",
+            LGBMRegressor(
+                loss="mse",
+                learning_rate=0.08,
+                num_iterations=250,
+                max_depth=7,
+                num_leaves=63,
+                min_data_in_leaf=15,
+                min_sum_hessian_in_leaf=1e-3,
+                lambda_l2=0.2,
+                lambda_l1=0.05,
+                subsample=0.9,
+                colsample=0.9,
+                use_histogram=True,
+                n_bins=64,
+                use_efb=False,
+                use_goss=True,
+                top_rate=0.15,
+                other_rate=0.1,
+                n_jobs=4,
+            ),
+        ),
+        (
+            "LightGBM-efb_parallel",
+            LGBMRegressor(
+                loss="mse",
+                learning_rate=0.1,
+                num_iterations=180,
+                max_depth=6,
+                num_leaves=40,
+                min_data_in_leaf=20,
+                min_sum_hessian_in_leaf=1e-3,
+                lambda_l2=0.1,
+                lambda_l1=0.0,
+                subsample=0.8,
+                colsample=0.9,
+                use_histogram=True,
+                n_bins=64,
+                use_efb=True,
+                efb_conflict_rate=0.01,
+                use_goss=False,
+                n_jobs=4,
+            ),
+        ),
+        (
+            "LightGBM-exact_small",
+            LGBMRegressor(
+                loss="mse",
+                learning_rate=0.05,
+                num_iterations=120,
+                max_depth=5,
+                num_leaves=31,
+                min_data_in_leaf=25,
+                min_sum_hessian_in_leaf=1e-3,
+                lambda_l2=0.1,
+                lambda_l1=0.05,
+                subsample=0.8,
+                colsample=0.8,
+                use_histogram=False,
+                use_efb=False,
+                use_goss=False,
+                n_jobs=4,
             ),
         ),
     ]
@@ -320,11 +365,16 @@ def main():
         print(f"\n ===== DATASET: {dname} ===== ")
 
         # clean
-        X = X.dropna()
-        y = y.loc[X.index]
+        data = X.copy()
+        data["__y__"] = y
+
+        data = data.dropna()
+
+        y_clean = data.pop("__y__")
+        X_clean = data
 
         X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=args.test_size, random_state=args.seed
+            X_clean, y_clean, test_size=args.test_size, random_state=args.seed
         )
 
         # scaling for linear models
