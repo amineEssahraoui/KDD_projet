@@ -14,9 +14,7 @@ from typing import Tuple
 import numpy as np
 
 
-# =============================================================================
 # Base Loss Class
-# =============================================================================
 
 class Loss(ABC):
     """
@@ -126,9 +124,7 @@ class Loss(ABC):
         return self.gradient(y_true, y_pred), self.hessian(y_true, y_pred)
 
 
-# =============================================================================
 # Regression Loss Functions
-# =============================================================================
 
 class MSELoss(Loss):
     """
@@ -294,9 +290,7 @@ class QuantileLoss(Loss):
         return float(np.quantile(y, self.quantile))
 
 
-# =============================================================================
 # Classification Loss Functions
-# =============================================================================
 
 class BinaryCrossEntropyLoss(Loss):
     """
@@ -509,9 +503,7 @@ class MultiClassCrossEntropyLoss(Loss):
         return gradient, hessian
 
 
-# =============================================================================
 # Loss Function Factory
-# =============================================================================
 
 def get_loss_function(
     objective: str,
@@ -570,9 +562,7 @@ def get_loss_function(
         )
 
 
-# =============================================================================
 # Module Exports
-# =============================================================================
 
 __all__ = [
     'Loss',
