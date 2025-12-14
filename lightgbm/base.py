@@ -20,11 +20,14 @@ class BoosterParams:
 
 	num_iterations: int = 100
 	learning_rate: float = 0.1
+	lr_decay: float = 1.0
+	lr_decay_steps: int = 1
 	max_depth: int = 6
 	num_leaves: int = 31
 	min_data_in_leaf: int = 20
 	min_sum_hessian_in_leaf: float = 0.0
 	lambda_l2: float = 0.0
+	lambda_l1: float = 0.0
 	min_gain_to_split: float = 0.0
 	subsample: float = 1.0
 	colsample: float = 1.0
@@ -38,11 +41,14 @@ class BaseEstimator(abc.ABC):
 		self,
 		num_iterations: int = 100,
 		learning_rate: float = 0.1,
+		lr_decay: float = 1.0,
+		lr_decay_steps: int = 1,
 		max_depth: int = 6,
 		num_leaves: int = 31,
 		min_data_in_leaf: int = 20,
 		min_sum_hessian_in_leaf: float = 0.0,
 		lambda_l2: float = 0.0,
+		lambda_l1: float = 0.0,
 		min_gain_to_split: float = 0.0,
 		subsample: float = 1.0,
 		colsample: float = 1.0,
@@ -51,18 +57,21 @@ class BaseEstimator(abc.ABC):
 		self.params = BoosterParams(
 			num_iterations=num_iterations,
 			learning_rate=learning_rate,
+			lr_decay=lr_decay,
+			lr_decay_steps=lr_decay_steps,
 			max_depth=max_depth,
 			num_leaves=num_leaves,
 			min_data_in_leaf=min_data_in_leaf,
 			min_sum_hessian_in_leaf=min_sum_hessian_in_leaf,
 			lambda_l2=lambda_l2,
+			lambda_l1=lambda_l1,
 			min_gain_to_split=min_gain_to_split,
 			subsample=subsample,
 			colsample=colsample,
 			random_state=random_state,
 		)
 
-	# --- Abstract API -------------------------------------------------
+
 	@abc.abstractmethod
 	def fit(self, X: np.ndarray, y: np.ndarray) -> "BaseEstimator":
 		raise NotImplementedError
@@ -71,7 +80,7 @@ class BaseEstimator(abc.ABC):
 	def predict(self, X: np.ndarray) -> np.ndarray:
 		raise NotImplementedError
 
-	# --- Shared helpers ----------------------------------------------
+
 	def _check_arrays(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> np.ndarray:
 		X = np.asarray(X, dtype=float)
 		if X.ndim != 2:
@@ -84,7 +93,6 @@ class BaseEstimator(abc.ABC):
 		return X
 
 	def _initial_prediction(self, y: np.ndarray) -> float:
-		# Using the mean aligns with squared-error optimal constant prediction.
 		return float(np.mean(y))
 
 	def _row_subsample(self, n_samples: int) -> np.ndarray:
@@ -102,6 +110,5 @@ class BaseEstimator(abc.ABC):
 		return np.sort(rng.choice(n_features, size=size, replace=False))
 
 	def _aggregate_prediction(self, init_pred: float, trees: List) -> np.ndarray:
-		# Accumulate prediction from all fitted trees.
 		return init_pred + sum(tree.predict for tree in trees)
 

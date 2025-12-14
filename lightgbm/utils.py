@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-def ValidateInputData(X): 
+def ValidateInputData(X , allow_nan: bool = True) -> np.ndarray: 
     """
     Valide et convertit X en numpy array
     
@@ -34,7 +34,7 @@ def ValidateInputData(X):
     if np.any(np.isinf(X)):
         raise ValueError("Input data contains infinite values.")
     
-    if np.any(np.isnan(X)):
+    if not allow_nan and np.any(np.isnan(X)):
         raise ValueError("Input data contains NaN values.")
     
     if X.shape[0] == 0:
@@ -42,13 +42,14 @@ def ValidateInputData(X):
 
     return X
 
-def check_X_y(X, y):
+def check_X_y(X, y, allow_nan: bool = True):
     """
     Vérifie que X et y ont des dimensions compatibles
     
     Args:
         X : array-like, shape (n_samples, n_features)
         y : array-like, shape (n_samples,)
+        allow_nan : bool (default True) whether to allow NaNs
         
     Returns:
         None
@@ -57,7 +58,7 @@ def check_X_y(X, y):
         ValueError si les dimensions ne sont pas compatibles
     """
     
-    X = ValidateInputData(X)
+    X = ValidateInputData(X , allow_nan=allow_nan)
     if isinstance(y, (pd.Series, pd.DataFrame)):
         y = y.values
     y = np.asarray(y)
@@ -74,12 +75,12 @@ def check_X_y(X, y):
     if np.any(np.isinf(y)):
         raise ValueError("y contains infinite values.")
     
-    if np.any(np.isnan(y)):
+    if not allow_nan and np.any(np.isnan(y)):
         raise ValueError("y contains NaN values.")
     
     return X, y
 
-def validate_saple_weight(sample_weight, n_samples):
+def validate_sample_weight(sample_weight, n_samples):
     """
     Valide le vecteur sample_weight
     
