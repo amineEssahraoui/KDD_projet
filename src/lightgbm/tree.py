@@ -14,10 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-
-# =============================================================================
-# Node Data Structures
-# =============================================================================
+# Node Data Structure
 
 @dataclass
 class TreeNode:
@@ -121,10 +118,7 @@ class SplitInfo:
     left_value: float = 0.0
     right_value: float = 0.0
 
-
-# =============================================================================
-# Decision Tree Class
-# =============================================================================
+# Decision Tree Clas
 
 class DecisionTree:
     """
@@ -795,9 +789,6 @@ class DecisionTree:
         if node.right:
             self._accumulate_importance(node.right, importances)
 
-
-# =============================================================================
-# Module Exports
-# =============================================================================
+# Module Export
 
 __all__ = ['DecisionTree', 'TreeNode', 'SplitInfo']
