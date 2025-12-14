@@ -15,11 +15,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-
-# =============================================================================
-# Booster Parameters Dataclass
-# =============================================================================
-
 @dataclass
 class BoosterParams:
     """
@@ -170,10 +165,6 @@ class BoosterParams:
             )
 
 
-# =============================================================================
-# Callback Base Class
-# =============================================================================
-
 class Callback(ABC):
     """
     Abstract base class for training callbacks.
@@ -280,10 +271,6 @@ class PrintProgressCallback(Callback):
         return False
 
 
-# =============================================================================
-# Base Estimator Abstract Class
-# =============================================================================
-
 class BaseEstimator(ABC):
     """
     Abstract base class for all LightGBM estimators.
@@ -356,10 +343,6 @@ class BaseEstimator(ABC):
             "val_loss": [],
         }
 
-    # -------------------------------------------------------------------------
-    # Property accessors for common hyperparameters
-    # -------------------------------------------------------------------------
-
     @property
     def num_iterations(self) -> int:
         return self.params.num_iterations
@@ -383,10 +366,6 @@ class BaseEstimator(ABC):
     @property
     def random_state(self) -> Optional[int]:
         return self.params.random_state
-
-    # -------------------------------------------------------------------------
-    # Abstract methods to be implemented by subclasses
-    # -------------------------------------------------------------------------
 
     @abstractmethod
     def fit(
@@ -437,10 +416,6 @@ class BaseEstimator(ABC):
             Predicted values.
         """
         pass
-
-    # -------------------------------------------------------------------------
-    # Common methods
-    # -------------------------------------------------------------------------
 
     def get_params(self) -> Dict[str, Any]:
         """
