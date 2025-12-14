@@ -12,17 +12,11 @@ from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 
-
-# =============================================================================
-# Type Aliases
-# =============================================================================
+# Type Aliase
 
 ArrayLike = Union[np.ndarray, List[Any], Tuple[Any, ...]]
 
-
-# =============================================================================
-# Input Validation Functions
-# =============================================================================
+# Input Validation Function
 
 def check_array(
     X: ArrayLike,
@@ -296,10 +290,7 @@ def validate_hyperparameters(
             f"min_data_in_leaf must be non-negative, got {min_data_in_leaf}"
         )
 
-
-# =============================================================================
-# Custom Exceptions
-# =============================================================================
+# Custom Exception
 
 class NotFittedError(ValueError):
     """
@@ -310,10 +301,7 @@ class NotFittedError(ValueError):
     """
     pass
 
-
-# =============================================================================
-# Data Splitting Functions (sklearn-free)
-# =============================================================================
+# Data Splitting Functions (sklearn-free
 
 def train_test_split(
     X: ArrayLike,
@@ -398,10 +386,7 @@ def train_test_split(
 
     return X[train_indices], X[test_indices], y[train_indices], y[test_indices]
 
-
-# =============================================================================
-# Metrics Functions (sklearn-free)
-# =============================================================================
+# Metrics Functions (sklearn-free
 
 def accuracy_score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     """
@@ -546,10 +531,7 @@ def r2_score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
 
     return float(1 - ss_res / ss_tot)
 
-
-# =============================================================================
-# Logging Utilities
-# =============================================================================
+# Logging Utilitie
 
 def log_message(message: str, *, verbose: int = 0) -> None:
     """
