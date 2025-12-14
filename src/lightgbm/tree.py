@@ -166,6 +166,7 @@ class DecisionTree:
         feature_fraction: float = 1.0,
         use_histogram: bool = False,
         max_bins: int = 255,
+        min_sum_hessian_in_leaf: float = 1e-3,
         random_state: Optional[int] = None,
     ):
         self.max_depth = max_depth
@@ -177,6 +178,7 @@ class DecisionTree:
         self.feature_fraction = feature_fraction
         self.use_histogram = use_histogram
         self.max_bins = max_bins
+        self.min_sum_hessian_in_leaf = min_sum_hessian_in_leaf
         self.random_state = random_state
 
         # Tree state
@@ -465,6 +467,20 @@ class DecisionTree:
         G_right_valid = G_right[valid_idx]
         H_right_valid = H_right[valid_idx]
 
+        # Enforce minimum hessian per child
+        hessian_ok = (
+            (H_left_valid >= self.min_sum_hessian_in_leaf)
+            & (H_right_valid >= self.min_sum_hessian_in_leaf)
+        )
+        if not np.any(hessian_ok):
+            return best_split
+
+        G_left_valid = G_left_valid[hessian_ok]
+        H_left_valid = H_left_valid[hessian_ok]
+        G_right_valid = G_right_valid[hessian_ok]
+        H_right_valid = H_right_valid[hessian_ok]
+        valid_idx = valid_idx[hessian_ok]
+
         # Vectorized score computation with L1 regularization
         if self.lambda_l1 > 0:
             G_left_reg = np.where(
@@ -475,11 +491,11 @@ class DecisionTree:
                 G_right_valid > self.lambda_l1, G_right_valid - self.lambda_l1,
                 np.where(G_right_valid < -self.lambda_l1, G_right_valid + self.lambda_l1, 0.0)
             )
-            left_scores = (G_left_reg ** 2) / (H_left_valid + self.lambda_l2)
-            right_scores = (G_right_reg ** 2) / (H_right_valid + self.lambda_l2)
+            left_scores = (G_left_reg ** 2) / (np.maximum(H_left_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores = (G_right_reg ** 2) / (np.maximum(H_right_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
         else:
-            left_scores = (G_left_valid ** 2) / (H_left_valid + self.lambda_l2)
-            right_scores = (G_right_valid ** 2) / (H_right_valid + self.lambda_l2)
+            left_scores = (G_left_valid ** 2) / (np.maximum(H_left_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores = (G_right_valid ** 2) / (np.maximum(H_right_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
 
         gains = left_scores + right_scores - current_score
 
@@ -533,13 +549,24 @@ class DecisionTree:
             return best_split
 
         # Compute histogram (vectorized using bincount)
-        bin_indices = np.digitize(feature_values, bin_edges[1:-1])
+        valid_mask = ~np.isnan(feature_values)
+        valid_values = feature_values[valid_mask]
+        if len(valid_values) < 2:
+            return best_split
+
+        bin_indices = np.digitize(valid_values, bin_edges[1:-1])
         bin_indices = np.clip(bin_indices, 0, n_bins - 1)
 
-        # Use numpy bincount for fast histogram
-        G_bins = np.bincount(bin_indices, weights=gradients, minlength=n_bins)
-        H_bins = np.bincount(bin_indices, weights=hessians, minlength=n_bins)
+        # Use numpy bincount for fast histogram on valid (non-NaN) entries
+        G_bins = np.bincount(bin_indices, weights=gradients[valid_mask], minlength=n_bins)
+        H_bins = np.bincount(bin_indices, weights=hessians[valid_mask], minlength=n_bins)
+        # Smooth tiny bin hessians to avoid zero curvature bins
+        H_bins = H_bins + 1e-6
         count_bins = np.bincount(bin_indices, minlength=n_bins)
+
+        nan_grad = float(np.sum(gradients[~valid_mask]))
+        nan_hess = float(np.sum(hessians[~valid_mask]))
+        nan_count = int(np.sum(~valid_mask))
 
         # Cumulative sums (vectorized)
         G_left_cumsum = np.cumsum(G_bins[:-1])
@@ -549,10 +576,13 @@ class DecisionTree:
         # Right sums
         G_right = G_total - G_left_cumsum
         H_right = H_total - H_left_cumsum
-        n_right = len(indices) - n_left_cumsum
+        n_right = len(indices) - n_left_cumsum - nan_count
 
         # Valid splits based on min_samples_leaf
-        valid_splits = (n_left_cumsum >= self.min_samples_leaf) & (n_right >= self.min_samples_leaf)
+        valid_splits = (
+            (n_left_cumsum + nan_count >= self.min_samples_leaf)
+            & (n_right >= self.min_samples_leaf)
+        )
 
         if not np.any(valid_splits):
             return best_split
@@ -560,10 +590,23 @@ class DecisionTree:
         valid_idx = np.where(valid_splits)[0]
 
         # Vectorized score computation
-        G_left_valid = G_left_cumsum[valid_idx]
-        H_left_valid = H_left_cumsum[valid_idx]
-        G_right_valid = G_right[valid_idx]
-        H_right_valid = H_right[valid_idx]
+        G_left_valid = G_left_cumsum[valid_idx] + nan_grad
+        H_left_valid = H_left_cumsum[valid_idx] + nan_hess
+        G_right_valid = G_total - G_left_valid
+        H_right_valid = H_total - H_left_valid
+
+        hessian_ok = (
+            (H_left_valid >= self.min_sum_hessian_in_leaf)
+            & (H_right_valid >= self.min_sum_hessian_in_leaf)
+        )
+        if not np.any(hessian_ok):
+            return best_split
+
+        G_left_valid = G_left_valid[hessian_ok]
+        H_left_valid = H_left_valid[hessian_ok]
+        G_right_valid = G_right_valid[hessian_ok]
+        H_right_valid = H_right_valid[hessian_ok]
+        valid_idx = valid_idx[hessian_ok]
 
         if self.lambda_l1 > 0:
             G_left_reg = np.where(
@@ -574,11 +617,11 @@ class DecisionTree:
                 G_right_valid > self.lambda_l1, G_right_valid - self.lambda_l1,
                 np.where(G_right_valid < -self.lambda_l1, G_right_valid + self.lambda_l1, 0.0)
             )
-            left_scores = (G_left_reg ** 2) / (H_left_valid + self.lambda_l2)
-            right_scores = (G_right_reg ** 2) / (H_right_valid + self.lambda_l2)
+            left_scores = (G_left_reg ** 2) / (np.maximum(H_left_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores = (G_right_reg ** 2) / (np.maximum(H_right_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
         else:
-            left_scores = (G_left_valid ** 2) / (H_left_valid + self.lambda_l2)
-            right_scores = (G_right_valid ** 2) / (H_right_valid + self.lambda_l2)
+            left_scores = (G_left_valid ** 2) / (np.maximum(H_left_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores = (G_right_valid ** 2) / (np.maximum(H_right_valid, self.min_sum_hessian_in_leaf) + self.lambda_l2)
 
         gains = left_scores + right_scores - current_score
 
@@ -589,7 +632,7 @@ class DecisionTree:
         if best_gain > best_split.gain:
             bin_idx = valid_idx[best_local_idx]
             threshold = bin_edges[bin_idx + 1]
-            left_mask = feature_values <= threshold
+            left_mask = np.isnan(feature_values) | (feature_values <= threshold)
             right_mask = ~left_mask
 
             best_split.gain = best_gain
@@ -644,7 +687,8 @@ class DecisionTree:
             else:
                 return 0.0
 
-        return (G ** 2) / (H + self.lambda_l2 + 1e-10)
+        H_safe = np.maximum(H, self.min_sum_hessian_in_leaf)
+        return (G ** 2) / (H_safe + self.lambda_l2 + 1e-10)
 
     def _compute_leaf_value(
         self, gradients: np.ndarray, hessians: np.ndarray
@@ -657,6 +701,8 @@ class DecisionTree:
         G = np.sum(gradients)
         H = np.sum(hessians)
 
+        H_safe = np.maximum(H, self.min_sum_hessian_in_leaf)
+
         # Apply L1 regularization
         if self.lambda_l1 > 0:
             if G > self.lambda_l1:
@@ -666,7 +712,8 @@ class DecisionTree:
             else:
                 return 0.0
 
-        return -G / (H + self.lambda_l2 + 1e-10)
+        value = -G / (H_safe + self.lambda_l2 + 1e-10)
+        return value
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -722,6 +769,7 @@ class DecisionTree:
             'feature_fraction': self.feature_fraction,
             'use_histogram': self.use_histogram,
             'max_bins': self.max_bins,
+            'min_sum_hessian_in_leaf': self.min_sum_hessian_in_leaf,
             'n_features_': self.n_features_,
             'n_leaves_': self.n_leaves_,
             'max_depth_reached_': self.max_depth_reached_,
@@ -739,6 +787,7 @@ class DecisionTree:
         self.feature_fraction = data.get('feature_fraction', 1.0)
         self.use_histogram = data.get('use_histogram', False)
         self.max_bins = data.get('max_bins', 255)
+        self.min_sum_hessian_in_leaf = data.get('min_sum_hessian_in_leaf', 1e-3)
         self.n_features_ = data.get('n_features_')
         self.n_leaves_ = data.get('n_leaves_', 0)
         self.max_depth_reached_ = data.get('max_depth_reached_', 0)

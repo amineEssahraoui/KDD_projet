@@ -140,6 +140,7 @@ class LGBMRegressor(BaseEstimator):
         feature_fraction: float = 1.0,
         bagging_fraction: float = 1.0,
         bagging_freq: int = 0,
+        min_sum_hessian_in_leaf: float = 1e-3,
         early_stopping_rounds: Optional[int] = None,
         enable_goss: bool = False,
         goss_top_rate: float = 0.2,
@@ -180,6 +181,7 @@ class LGBMRegressor(BaseEstimator):
             feature_fraction=feature_fraction,
             bagging_fraction=bagging_fraction,
             bagging_freq=bagging_freq,
+            min_sum_hessian_in_leaf=min_sum_hessian_in_leaf,
             early_stopping_rounds=early_stopping_rounds,
             enable_goss=enable_goss,
             goss_top_rate=goss_top_rate,
@@ -398,6 +400,7 @@ class LGBMRegressor(BaseEstimator):
                 feature_fraction=self.params.feature_fraction,
                 use_histogram=self.params.use_histogram,
                 max_bins=self.params.max_bins,
+                min_sum_hessian_in_leaf=self.params.min_sum_hessian_in_leaf,
                 random_state=self.params.random_state,
             )
 

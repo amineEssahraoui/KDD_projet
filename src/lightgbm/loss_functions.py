@@ -237,10 +237,17 @@ class HuberLoss(Loss):
         residual = y_pred - y_true
         abs_residual = np.abs(residual)
 
-        # Hessian is 1 for small errors, approaches 0 for large errors
-        hessian = np.where(abs_residual <= self.delta, 1.0, 0.0)
-        # Add small constant to avoid division by zero
-        return hessian + 1e-6
+        # Standard Huber has zero second derivative for large residuals, which
+        # can produce exploding leaf values when the tree solver divides by a
+        # near‑zero hessian. We damp the curvature instead of dropping it to
+        # zero: keep 1.0 in the quadratic region and shrink smoothly outside.
+        hessian = np.where(
+            abs_residual <= self.delta,
+            1.0,
+            self.delta / abs_residual,
+        )
+        # Prevent extremely small curvature that would blow up leaf weights
+        return np.clip(hessian, 1e-3, None)
 
     def init_prediction(self, y: np.ndarray) -> float:
         """Initial prediction is the mean of targets."""

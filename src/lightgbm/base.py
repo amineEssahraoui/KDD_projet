@@ -91,6 +91,7 @@ class BoosterParams:
     max_bins: int = 255
     use_efb: bool = False
     allow_nan: bool = True
+    min_sum_hessian_in_leaf: float = 1e-3
     lr_decay: float = 1.0
     warm_start: bool = False
     verbose: int = 0
@@ -150,6 +151,11 @@ class BoosterParams:
             raise ValueError(f"max_bins must be >= 2, got {self.max_bins}")
         if not 0 < self.lr_decay <= 1:
             raise ValueError(f"lr_decay must be in (0, 1], got {self.lr_decay}")
+        if self.min_sum_hessian_in_leaf <= 0:
+            raise ValueError(
+                f"min_sum_hessian_in_leaf must be positive, got {self.min_sum_hessian_in_leaf}"
+            )
+
         if not 0 < self.goss_top_rate < 1:
             raise ValueError(
                 f"goss_top_rate must be in (0, 1), got {self.goss_top_rate}"
@@ -300,6 +306,7 @@ class BaseEstimator(ABC):
         max_bins: int = 255,
         use_efb: bool = False,
         allow_nan: bool = True,
+        min_sum_hessian_in_leaf: float = 1e-3,
         lr_decay: float = 1.0,
         warm_start: bool = False,
         verbose: int = 0,
@@ -326,6 +333,7 @@ class BaseEstimator(ABC):
             max_bins=max_bins,
             use_efb=use_efb,
             allow_nan=allow_nan,
+            min_sum_hessian_in_leaf=min_sum_hessian_in_leaf,
             lr_decay=lr_decay,
             warm_start=warm_start,
             verbose=verbose,
