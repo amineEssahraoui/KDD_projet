@@ -21,9 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 from lightgbm import LGBMClassifier, LGBMRegressor
 
 
-# =============================================================================
 # SANITY CHECK: OVERFITTING CAPABILITY
-# =============================================================================
 
 class TestOverfittingCapability:
     """
@@ -156,9 +154,7 @@ class TestOverfittingCapability:
         assert accuracy >= 0.9, f"Model cannot overfit! Accuracy={accuracy:.2%}"
 
 
-# =============================================================================
 # CONVERGENCE TEST
-# =============================================================================
 
 class TestTrainingConvergence:
     """
@@ -249,9 +245,7 @@ class TestTrainingConvergence:
             f"Early stopping didn't trigger! Ran all {model.n_iter_} iterations"
 
 
-# =============================================================================
 # EDGE CASES
-# =============================================================================
 
 class TestEdgeCases:
     """Test handling of edge cases that shouldn't crash the model."""
@@ -461,9 +455,7 @@ class TestReproducibility:
             print("\n[Reproducibility Test] Warning: Different seeds produced same results")
 
 
-# =============================================================================
 # RUN TESTS
-# =============================================================================
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "--tb=short", "-s"])
