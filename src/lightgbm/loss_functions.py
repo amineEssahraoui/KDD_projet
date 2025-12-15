@@ -318,8 +318,7 @@ class BinaryCrossEntropyLoss(Loss):
 
     def _sigmoid(self, x: np.ndarray) -> np.ndarray:
         """Numerically stable sigmoid function."""
-        # Use clip to prevent overflow
-        x = np.clip(x, -500, 500)
+        x = np.clip(x, -709, 709)
         return 1.0 / (1.0 + np.exp(-x))
 
     def __call__(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -414,11 +413,14 @@ class MultiClassCrossEntropyLoss(Loss):
         loss : float
             Mean cross-entropy loss.
         """
-        probs = self._softmax(y_pred)
-        probs = np.clip(probs, self.eps, 1 - self.eps)
+        # Compute log-probabilities with log-sum-exp for numerical stability
+        x = y_pred
+        x_max = np.max(x, axis=1, keepdims=True)
+        log_sum_exp = x_max + np.log(np.sum(np.exp(x - x_max), axis=1, keepdims=True))
         n_samples = len(y_true)
         y_true_int = y_true.astype(int)
-        log_probs = np.log(probs[np.arange(n_samples), y_true_int])
+        log_probs = (x - log_sum_exp)[np.arange(n_samples), y_true_int]
+        log_probs = np.clip(log_probs, -1e9, -self.eps)  # keep sane range
         return float(-np.mean(log_probs))
 
     def gradient(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:

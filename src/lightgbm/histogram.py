@@ -223,6 +223,7 @@ class HistogramBuilder:
         feature_idx: int,
         lambda_l2: float = 0.0,
         min_samples_leaf: int = 1,
+        min_sum_hessian_in_leaf: float = 1e-3,
     ) -> Tuple[float, float, float, float]:
         """
         Find the best split from a histogram.
@@ -285,8 +286,10 @@ class HistogramBuilder:
             H_right = H_total - H_left
             n_right = n_total - n_left
 
-            # Check constraints
+            # Check constraints (samples and hessian)
             if n_left < min_samples_leaf or n_right < min_samples_leaf:
+                continue
+            if H_left < min_sum_hessian_in_leaf or H_right < min_sum_hessian_in_leaf:
                 continue
 
             # Compute gain
@@ -297,8 +300,10 @@ class HistogramBuilder:
             if gain > best_gain:
                 best_gain = gain
                 best_bin_idx = bin_idx
-                best_left_value = -G_left / (H_left + lambda_l2 + 1e-10)
-                best_right_value = -G_right / (H_right + lambda_l2 + 1e-10)
+                H_left_safe = max(H_left, min_sum_hessian_in_leaf)
+                H_right_safe = max(H_right, min_sum_hessian_in_leaf)
+                best_left_value = -G_left / (H_left_safe + lambda_l2 + 1e-10)
+                best_right_value = -G_right / (H_right_safe + lambda_l2 + 1e-10)
 
         # Convert bin index to threshold
         if best_bin_idx >= 0 and best_bin_idx + 1 < len(edges):
@@ -317,6 +322,7 @@ def histogram_split(
     max_bins: int = 255,
     lambda_l2: float = 0.0,
     min_samples_leaf: int = 1,
+    min_sum_hessian_in_leaf: float = 1e-3,
 ) -> Tuple[int, float, float]:
     """
     Find the best split using histogram-based algorithm.
@@ -360,7 +366,7 @@ def histogram_split(
             X_binned, gradients, hessians, indices, feature_idx
         )
         gain, threshold, _, _ = builder.find_best_split_from_histogram(
-            histogram, feature_idx, lambda_l2, min_samples_leaf
+            histogram, feature_idx, lambda_l2, min_samples_leaf, min_sum_hessian_in_leaf
         )
 
         if gain > best_gain:
