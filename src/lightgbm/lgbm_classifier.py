@@ -285,10 +285,14 @@ class LGBMClassifier(BaseEstimator):
             self._initialize_fit(X, y)
         else:
             # Warm start: continue from previous trees
-            if X.shape[1] != self.n_features_:
+            expected_feats = (
+                self._bundler.n_original_features_
+                if getattr(self, "_bundler", None) is not None
+                else self.n_features_
+            )
+            if X.shape[1] != expected_feats:
                 raise ValueError(
-                    f"Number of features mismatch. Expected {self.n_features_}, "
-                    f"got {X.shape[1]}."
+                    f"Number of features mismatch. Expected {expected_feats}, got {X.shape[1]}."
                 )
 
         # Encode labels
@@ -357,6 +361,29 @@ class LGBMClassifier(BaseEstimator):
 
         # Compute initial prediction with encoded labels
         self.init_prediction_ = self.loss_function_.init_prediction(y_encoded_temp)
+
+        # Normalize init_prediction_ shape: scalar for binary, 1d-array for multiclass
+        if self._is_binary:
+            # Expect a scalar for binary problems
+            if isinstance(self.init_prediction_, np.ndarray):
+                if self.init_prediction_.size == 1:
+                    self.init_prediction_ = float(self.init_prediction_)
+                else:
+                    raise ValueError(
+                        "Expected scalar init_prediction_ for binary classification, "
+                        f"got array of shape {self.init_prediction_.shape}"
+                    )
+        else:
+            # Multiclass: ensure an array of shape (n_classes_,)
+            arr = np.asarray(self.init_prediction_)
+            if arr.ndim != 1 or arr.shape[0] != self.n_classes_:
+                if arr.size == self.n_classes_:
+                    arr = arr.reshape(self.n_classes_)
+                else:
+                    raise ValueError(
+                        "init_prediction_ for multiclass must be array-like with length n_classes"
+                    )
+            self.init_prediction_ = arr
 
     def _train_binary(
         self,

@@ -20,24 +20,102 @@ import numpy as np
 class TreeNode:
     """
     Represents a node in the decision tree.
+        G_left_base = G_left_cumsum[valid_idx]
+        H_left_base = H_left_cumsum[valid_idx]
 
-    Attributes
-    ----------
-    is_leaf : bool
-        Whether this is a leaf node.
-    value : float
-        Prediction value (for leaves) or split gain (for internal nodes).
-    feature_idx : int or None
-        Feature index used for splitting (internal nodes only).
-    threshold : float or None
-        Split threshold (internal nodes only).
-    left : TreeNode or None
-        Left child node.
-    right : TreeNode or None
-        Right child node.
-    n_samples : int
-        Number of samples in this node.
-    depth : int
+        # Consider two policies for NaNs: assign them to left OR to right.
+        # Compute both gains and pick the better option per split position.
+
+        # Case A: NaNs go to left
+        G_left_a = G_left_base + nan_grad
+        H_left_a = H_left_base + nan_hess
+        G_right_a = G_total - G_left_a
+        H_right_a = H_total - H_left_a
+
+        # Case B: NaNs go to right
+        G_left_b = G_left_base
+        H_left_b = H_left_base
+        G_right_b = G_total - G_left_b
+        H_right_b = H_total - H_left_b
+
+        # Check hessian constraints for both assignments
+        hessian_ok_a = (H_left_a >= self.min_sum_hessian_in_leaf) & (
+            H_right_a >= self.min_sum_hessian_in_leaf
+        )
+        hessian_ok_b = (H_left_b >= self.min_sum_hessian_in_leaf) & (
+            H_right_b >= self.min_sum_hessian_in_leaf
+        )
+
+        # Also enforce min_samples_leaf depending on NaN assignment
+        n_left_base = n_left_cumsum[valid_idx]
+        n_right_base = len(indices) - n_left_base - nan_count
+        samples_ok_a = (n_left_base + nan_count >= self.min_samples_leaf) & (
+            n_right_base >= self.min_samples_leaf
+        )
+        samples_ok_b = (n_left_base >= self.min_samples_leaf) & (
+            (n_right_base + nan_count) >= self.min_samples_leaf
+        )
+
+        # Valid splits are those where at least one assignment meets both constraints
+        hessian_ok = (hessian_ok_a & samples_ok_a) | (hessian_ok_b & samples_ok_b)
+
+        if not np.any(valid_splits):
+            return best_split
+
+        valid_idx = np.where(valid_splits)[0]
+
+        # Keep only splits where at least one NaN assignment is valid
+        valid_idx = valid_idx[hessian_ok]
+        if len(valid_idx) == 0:
+            return best_split
+
+        # For the remaining valid splits, choose the best assignment per split
+        G_left_a = G_left_a[hessian_ok]
+        H_left_a = H_left_a[hessian_ok]
+        G_right_a = G_right_a[hessian_ok]
+        H_right_a = H_right_a[hessian_ok]
+
+        G_left_b = G_left_b[hessian_ok]
+        H_left_b = H_left_b[hessian_ok]
+        G_right_b = G_right_b[hessian_ok]
+        H_right_b = H_right_b[hessian_ok]
+
+        # Compute scores (apply L1 soft-thresholding if needed later)
+        if self.lambda_l1 > 0:
+            def reg_G(G):
+                return np.where(
+                    G > self.lambda_l1, G - self.lambda_l1,
+                    np.where(G < -self.lambda_l1, G + self.lambda_l1, 0.0)
+                )
+            G_left_a_reg = reg_G(G_left_a)
+            G_right_a_reg = reg_G(G_right_a)
+            G_left_b_reg = reg_G(G_left_b)
+            G_right_b_reg = reg_G(G_right_b)
+
+            left_scores_a = (G_left_a_reg ** 2) / (np.maximum(H_left_a, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores_a = (G_right_a_reg ** 2) / (np.maximum(H_right_a, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+
+            left_scores_b = (G_left_b_reg ** 2) / (np.maximum(H_left_b, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores_b = (G_right_b_reg ** 2) / (np.maximum(H_right_b, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+        else:
+            left_scores_a = (G_left_a ** 2) / (np.maximum(H_left_a, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores_a = (G_right_a ** 2) / (np.maximum(H_right_a, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+
+            left_scores_b = (G_left_b ** 2) / (np.maximum(H_left_b, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+            right_scores_b = (G_right_b ** 2) / (np.maximum(H_right_b, self.min_sum_hessian_in_leaf) + self.lambda_l2)
+
+        gains_a = left_scores_a + right_scores_a - current_score
+        gains_b = left_scores_b + right_scores_b - current_score
+
+        # Choose assignment with larger gain per split
+        choose_a = gains_a >= gains_b
+        gains = np.where(choose_a, gains_a, gains_b)
+
+        # Keep values for the chosen assignment
+        G_left_valid = np.where(choose_a, G_left_a, G_left_b)
+        H_left_valid = np.where(choose_a, H_left_a, H_left_b)
+        G_right_valid = np.where(choose_a, G_right_a, G_right_b)
+        H_right_valid = np.where(choose_a, H_right_a, H_right_b)
         Depth of this node in the tree.
     gain : float
         Information gain from the split (internal nodes only).

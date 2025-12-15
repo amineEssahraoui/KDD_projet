@@ -80,6 +80,8 @@ from .utils import (
     mean_absolute_error,
     r2_score,
     NotFittedError,
+    log_message,
+    log_training_progress,
 )
 
 # Advanced features
@@ -125,6 +127,8 @@ __all__ = [
     "mean_squared_error",
     "mean_absolute_error",
     "r2_score",
+    "log_message",
+    "log_training_progress",
     "NotFittedError",
     # GOSS
     "GOSS",

@@ -47,6 +47,23 @@ class LGBMRegressor(BaseEstimator):
     - Learning rate decay
     - Callbacks
 
+        Notes
+        -----
+        - `objective` accepts either a string (e.g. 'mse', 'huber') or a `Loss`
+            instance (e.g. `HuberLoss(delta=1.0)`) to support custom losses.
+        - `allow_nan` (default True) controls whether NaN feature values are
+            permitted. Tree histogram splitting has improved NaN handling: NaN
+            entries are considered for both left/right assignment and the best
+            assignment is chosen when computing split gains.
+        - `use_efb` supports Exclusive Feature Bundling. Warm-start feature
+            checks compare incoming raw feature count against the bundler's
+            `n_original_features_` when a bundler is present.
+        - `min_sum_hessian_in_leaf` is enforced uniformly (including
+            histogram-based splits) and leaf value computations use a safe
+            hessian floor to avoid division-by-zero.
+        - Numerical stability improvements were applied (stable sigmoid
+            clipping, log-sum-exp for multiclass probabilities in losses).
+
     Parameters
     ----------
     num_iterations : int, default=100
@@ -271,10 +288,14 @@ class LGBMRegressor(BaseEstimator):
             self._initialize_fit(X, y)
         else:
             # Warm start: continue from previous trees
-            if X.shape[1] != self.n_features_:
+            expected_feats = (
+                self._bundler.n_original_features_
+                if getattr(self, "_bundler", None) is not None
+                else self.n_features_
+            )
+            if X.shape[1] != expected_feats:
                 raise ValueError(
-                    f"Number of features mismatch. Expected {self.n_features_}, "
-                    f"got {X.shape[1]}."
+                    f"Number of features mismatch. Expected {expected_feats}, got {X.shape[1]}."
                 )
 
         # Apply EFB if enabled

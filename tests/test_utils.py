@@ -30,6 +30,8 @@ from lightgbm.utils import (
     train_test_split,
 )
 
+from lightgbm import log_message, log_training_progress
+
 # check_array Tes
 
 
@@ -293,3 +295,12 @@ def test_train_test_split_stratify():
     )
     # Should have roughly equal class distribution in test set
     assert len(y_test) == 10
+
+
+def test_log_message_and_progress_prints(capsys):
+    """Test that logging helpers print when verbose >= 1."""
+    log_message("hello", verbose=1)
+    log_training_progress(1, 10, 0.12345, verbose=1, metric_name="loss")
+    captured = capsys.readouterr()
+    assert "hello" in captured.out
+    assert "Iter 1/10" in captured.out
