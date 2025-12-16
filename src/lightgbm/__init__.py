@@ -63,7 +63,6 @@ from .base import (
     BoosterParams,
     Callback,
     EarlyStoppingCallback,
-    PrintProgressCallback,
 )
 
 # Utility functions
@@ -113,7 +112,6 @@ __all__ = [
     "BoosterParams",
     "Callback",
     "EarlyStoppingCallback",
-    "PrintProgressCallback",
     # Utilities
     "check_array",
     "check_X_y",
