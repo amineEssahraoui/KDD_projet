@@ -571,6 +571,6 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour détail
 
 ---
 
-**Dernière mise à jour** : Décembre 2024  
+**Dernière mise à jour** : Décembre 2025  
 **Version** : 1.0.0  
 **Status** : ✅ Production Ready
