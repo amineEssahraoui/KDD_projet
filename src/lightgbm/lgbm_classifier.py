@@ -28,6 +28,8 @@ from .utils import (
     check_is_fitted,
     check_sample_weight,
     NotFittedError,
+    log_message,
+    log_training_progress,
 )
 
 
@@ -493,10 +495,16 @@ class LGBMClassifier(BaseEstimator):
 
             # Verbose output
             if self.params.verbose >= 1:
-                val_str = f", val_loss: {val_loss:.6f}" if val_loss else ""
-                print(
-                    f"[Iter {self.n_iter_}] train_loss: {train_loss:.6f}{val_str}"
+                # Use logging helpers for consistent formatting
+                log_training_progress(
+                    self.n_iter_,
+                    self.params.num_iterations,
+                    train_loss,
+                    verbose=self.params.verbose,
+                    metric_name="train_loss",
                 )
+                if val_loss is not None:
+                    log_message(f"val_loss: {val_loss:.6f}", verbose=self.params.verbose)
 
             # Run callbacks
             stop = False
@@ -508,7 +516,7 @@ class LGBMClassifier(BaseEstimator):
 
             if stop:
                 if self.params.verbose >= 1:
-                    print(f"Callback requested early stopping at iteration {iteration}")
+                    log_message(f"Callback requested early stopping at iteration {iteration}", verbose=self.params.verbose)
                 break
 
             # Early stopping check
@@ -524,9 +532,10 @@ class LGBMClassifier(BaseEstimator):
 
                 if rounds_without_improvement >= self.params.early_stopping_rounds:
                     if self.params.verbose >= 1:
-                        print(
+                        log_message(
                             f"Early stopping at iteration {self.n_iter_} "
-                            f"(no improvement for {self.params.early_stopping_rounds} rounds)"
+                            f"(no improvement for {self.params.early_stopping_rounds} rounds)",
+                            verbose=self.params.verbose,
                         )
                     break
 
@@ -655,10 +664,15 @@ class LGBMClassifier(BaseEstimator):
 
             # Verbose output
             if self.params.verbose >= 1:
-                val_str = f", val_loss: {val_loss:.6f}" if val_loss else ""
-                print(
-                    f"[Iter {self.n_iter_}] train_loss: {train_loss:.6f}{val_str}"
+                log_training_progress(
+                    self.n_iter_,
+                    self.params.num_iterations,
+                    train_loss,
+                    verbose=self.params.verbose,
+                    metric_name="train_loss",
                 )
+                if val_loss is not None:
+                    log_message(f"val_loss: {val_loss:.6f}", verbose=self.params.verbose)
 
             # Run callbacks
             stop = False
@@ -670,7 +684,7 @@ class LGBMClassifier(BaseEstimator):
 
             if stop:
                 if self.params.verbose >= 1:
-                    print(f"Callback requested early stopping at iteration {iteration}")
+                    log_message(f"Callback requested early stopping at iteration {iteration}", verbose=self.params.verbose)
                 break
 
             # Early stopping check
@@ -686,9 +700,10 @@ class LGBMClassifier(BaseEstimator):
 
                 if rounds_without_improvement >= self.params.early_stopping_rounds:
                     if self.params.verbose >= 1:
-                        print(
+                        log_message(
                             f"Early stopping at iteration {self.n_iter_} "
-                            f"(no improvement for {self.params.early_stopping_rounds} rounds)"
+                            f"(no improvement for {self.params.early_stopping_rounds} rounds)",
+                            verbose=self.params.verbose,
                         )
                     break
 
