@@ -250,33 +250,6 @@ class EarlyStoppingCallback(Callback):
         return False
 
 
-class PrintProgressCallback(Callback):
-    """
-    Callback to print training progress.
-
-    Parameters
-    ----------
-    print_every : int
-        Print progress every N iterations.
-    """
-
-    def __init__(self, print_every: int = 10):
-        self.print_every = print_every
-
-    def on_iteration_end(
-        self,
-        iteration: int,
-        model: "BaseEstimator",
-        train_loss: float,
-        val_loss: Optional[float] = None,
-    ) -> bool:
-        """Print progress if at print interval."""
-        if (iteration + 1) % self.print_every == 0:
-            val_str = f", val_loss: {val_loss:.6f}" if val_loss is not None else ""
-            print(f"[Iter {iteration + 1}] train_loss: {train_loss:.6f}{val_str}")
-        return False
-
-
 class BaseEstimator(ABC):
     """
     Abstract base class for all LightGBM estimators.

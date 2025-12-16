@@ -63,7 +63,6 @@ from .base import (
     BoosterParams,
     Callback,
     EarlyStoppingCallback,
-    PrintProgressCallback,
 )
 
 # Utility functions
@@ -86,7 +85,6 @@ from .utils import (
 
 # Advanced features
 from .goss import GOSS, apply_goss
-from .histogram import HistogramBuilder, HistogramBin, histogram_split
 from .efb import FeatureBundler, bundle_features
 
 # Public API
@@ -114,7 +112,6 @@ __all__ = [
     "BoosterParams",
     "Callback",
     "EarlyStoppingCallback",
-    "PrintProgressCallback",
     # Utilities
     "check_array",
     "check_X_y",
@@ -133,10 +130,6 @@ __all__ = [
     # GOSS
     "GOSS",
     "apply_goss",
-    # Histogram
-    "HistogramBuilder",
-    "HistogramBin",
-    "histogram_split",
     # EFB
     "FeatureBundler",
     "bundle_features",
