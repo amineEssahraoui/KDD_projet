@@ -536,8 +536,9 @@ Les contributions sont les bienvenues ! Pour contribuer :
 
 ## 👥 Auteurs
 
-- **Amine Essahraoui** - Développement principal
-- **LightGBM Scratch Contributors** - KDD Project Team
+- **Amine Essahraoui** 
+- **Mohammed Amine Zbida**
+- **Abderrarak Khall**
 
 ---
 
