@@ -23,6 +23,8 @@ from typing import Dict, Iterable, List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.datasets import (
+    make_regression,
+    make_classification,
     fetch_california_housing,
     load_breast_cancer,
     load_wine,
@@ -507,6 +509,180 @@ def run_regression_noisy(configs: List[ExperimentConfig]) -> None:
         print(f"  Final R^2 (val): {r2:.4f}, RMSE (val): {rmse:.4f}, MAE (val): {mae:.4f}")
 
 
+def run_synthetic_classification(configs: List[ExperimentConfig]) -> None:
+    # High-dimensional synthetic binary classification to stress EFB/GOSS
+    X, y = make_classification(
+        n_samples=5000,
+        n_features=400,
+        n_informative=60,
+        n_redundant=40,
+        n_repeated=0,
+        n_clusters_per_class=2,
+        weights=[0.55, 0.45],
+        class_sep=1.0,
+        flip_y=0.02,
+        random_state=RANDOM_STATE,
+    )
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.25, random_state=RANDOM_STATE, stratify=y
+    )
+
+    for cfg in configs:
+        print(f"\n[Synth-Cls] Config: {cfg.name}")
+        model = LGBMClassifier(
+            num_iterations=120,
+            learning_rate=0.08,
+            max_depth=8,
+            num_leaves=63,
+            **cfg.params,
+            random_state=RANDOM_STATE,
+        )
+        model.fit(X_train, y_train, eval_set=(X_val, y_val))
+
+        iters = []
+        roc_train, roc_val, pr_train, pr_val = [], [], [], []
+
+        staged_train = list(_staged_raw_predictions_classifier(model, X_train))
+        staged_val = list(_staged_raw_predictions_classifier(model, X_val))
+
+        for idx, raw_train in enumerate(staged_train, start=1):
+            raw_val = staged_val[idx - 1]
+            tr_roc, tr_pr = _binary_metrics(y_train, raw_train)
+            va_roc, va_pr = _binary_metrics(y_val, raw_val)
+
+            iters.append(idx)
+            roc_train.append(tr_roc)
+            roc_val.append(va_roc)
+            pr_train.append(tr_pr)
+            pr_val.append(va_pr)
+
+        _plot_metric_curves(
+            iters,
+            {f"{cfg.name} train": roc_train, f"{cfg.name} val": roc_val},
+            title=f"Synthetic Binary ROC-AUC ({cfg.name})",
+            ylabel="ROC-AUC",
+            filename=f"synth_binary_roc_auc_{cfg.name}.png",
+        )
+        _plot_metric_curves(
+            iters,
+            {f"{cfg.name} train": pr_train, f"{cfg.name} val": pr_val},
+            title=f"Synthetic Binary PR-AUC ({cfg.name})",
+            ylabel="PR-AUC",
+            filename=f"synth_binary_pr_auc_{cfg.name}.png",
+        )
+
+        print(f"  Final ROC-AUC (val): {roc_val[-1]:.4f}, PR-AUC (val): {pr_val[-1]:.4f}")
+
+    if xgb is not None:
+        print("\n[Synth-Cls] Config: xgboost")
+        xgb_clf = xgb.XGBClassifier(
+            n_estimators=160,
+            learning_rate=0.08,
+            max_depth=8,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            objective="binary:logistic",
+            eval_metric=["aucpr", "auc"],
+            random_state=RANDOM_STATE,
+            tree_method="hist",
+        )
+        xgb_clf.fit(X_train, y_train)
+        proba = xgb_clf.predict_proba(X_val)[:, 1]
+        roc = roc_auc_score(y_val, proba)
+        pr = average_precision_score(y_val, proba)
+        print(f"  Final ROC-AUC (val): {roc:.4f}, PR-AUC (val): {pr:.4f}")
+
+
+def run_synthetic_regression(configs: List[ExperimentConfig]) -> None:
+    # High-dimensional synthetic regression to stress histogram/EFB/GOSS
+    X, y = make_regression(
+        n_samples=5000,
+        n_features=300,
+        n_informative=80,
+        noise=15.0,
+        random_state=RANDOM_STATE,
+    )
+
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.25, random_state=RANDOM_STATE
+    )
+
+    for cfg in configs:
+        print(f"\n[Synth-Reg] Config: {cfg.name}")
+        model = LGBMRegressor(
+            num_iterations=140,
+            learning_rate=0.08,
+            max_depth=8,
+            num_leaves=63,
+            **cfg.params,
+            random_state=RANDOM_STATE,
+        )
+        model.fit(X_train, y_train, eval_set=(X_val, y_val))
+
+        iters = []
+        r2_train, r2_val, rmse_train, rmse_val, mae_train, mae_val = [], [], [], [], [], []
+
+        staged_train = list(_staged_predictions_regressor(model, X_train))
+        staged_val = list(_staged_predictions_regressor(model, X_val))
+
+        for idx, preds_train in enumerate(staged_train, start=1):
+            preds_val = staged_val[idx - 1]
+            tr_r2, tr_rmse, tr_mae = _regression_metrics(y_train, preds_train)
+            va_r2, va_rmse, va_mae = _regression_metrics(y_val, preds_val)
+
+            iters.append(idx)
+            r2_train.append(tr_r2)
+            r2_val.append(va_r2)
+            rmse_train.append(tr_rmse)
+            rmse_val.append(va_rmse)
+            mae_train.append(tr_mae)
+            mae_val.append(va_mae)
+
+        _plot_metric_curves(
+            iters,
+            {f"{cfg.name} train": r2_train, f"{cfg.name} val": r2_val},
+            title=f"Synthetic Regression R^2 ({cfg.name})",
+            ylabel="R^2",
+            filename=f"synth_regression_r2_{cfg.name}.png",
+        )
+        _plot_metric_curves(
+            iters,
+            {f"{cfg.name} train": rmse_train, f"{cfg.name} val": rmse_val},
+            title=f"Synthetic Regression RMSE ({cfg.name})",
+            ylabel="RMSE",
+            filename=f"synth_regression_rmse_{cfg.name}.png",
+        )
+        _plot_metric_curves(
+            iters,
+            {f"{cfg.name} train": mae_train, f"{cfg.name} val": mae_val},
+            title=f"Synthetic Regression MAE ({cfg.name})",
+            ylabel="MAE",
+            filename=f"synth_regression_mae_{cfg.name}.png",
+        )
+
+        print(
+            f"  Final R^2 (val): {r2_val[-1]:.4f}, RMSE (val): {rmse_val[-1]:.4f}, MAE (val): {mae_val[-1]:.4f}"
+        )
+
+    if xgb is not None:
+        print("\n[Synth-Reg] Config: xgboost")
+        xgb_reg = xgb.XGBRegressor(
+            n_estimators=220,
+            learning_rate=0.08,
+            max_depth=9,
+            subsample=0.9,
+            colsample_bytree=0.9,
+            objective="reg:squarederror",
+            random_state=RANDOM_STATE,
+            tree_method="hist",
+        )
+        xgb_reg.fit(X_train, y_train)
+        preds = xgb_reg.predict(X_val)
+        r2, rmse, mae = _regression_metrics(y_val, preds)
+        print(f"  Final R^2 (val): {r2:.4f}, RMSE (val): {rmse:.4f}, MAE (val): {mae:.4f}")
+
+
 def main() -> None:
     _ensure_output_dir()
 
@@ -522,6 +698,8 @@ def main() -> None:
     run_multiclass_classification(configs)
     run_regression(configs)
     run_regression_noisy(configs)
+    run_synthetic_classification(configs)
+    run_synthetic_regression(configs)
 
     print(f"\nPlots saved to: {OUTPUT_DIR}")
 
