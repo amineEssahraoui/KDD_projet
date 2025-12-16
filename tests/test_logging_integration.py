@@ -1,6 +1,15 @@
+import sys
+import os
 import numpy as np
 
-from lightgbm import LGBMRegressor, LGBMClassifier
+# Ensure local `src/` package is importable when running tests without installation
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+SRC_PATH = os.path.join(PROJECT_ROOT, "src")
+if SRC_PATH not in sys.path:
+    sys.path.insert(0, SRC_PATH)
+
+from lightgbm.lgbm_classifier import LGBMClassifier
+from lightgbm.lgbm_regressor import LGBMRegressor
 
 
 def test_regressor_uses_logging(capsys):
