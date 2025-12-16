@@ -26,3 +26,4 @@ def test_classifier_uses_logging(capsys):
     captured = capsys.readouterr()
     assert "[LightGBM]" in captured.out
     assert "Iter" in captured.out
+
