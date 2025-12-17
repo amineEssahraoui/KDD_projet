@@ -10,7 +10,7 @@ Une implémentation complète de LightGBM (Light Gradient Boosting Machine) en p
 
 ---
 
-## 📋 Table des matières
+## Table des matières
 
 - [Features](#-features)
 - [Installation](#-installation)
