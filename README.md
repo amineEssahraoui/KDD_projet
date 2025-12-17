@@ -2,7 +2,7 @@
 
 Une implémentation complète de LightGBM (Light Gradient Boosting Machine) en pur Python/NumPy, développée comme projet académique sur les algorithmes d'arbres de décision.
 
-**🎯 Zéro dépendance sklearn** - Tous les algorithmes implémentés from scratch avec NumPy uniquement !
+** Zéro dépendance sklearn** - Tous les algorithmes implémentés from scratch avec NumPy uniquement !
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![NumPy](https://img.shields.io/badge/NumPy-Only-green)](https://numpy.org/)
@@ -27,21 +27,21 @@ Une implémentation complète de LightGBM (Light Gradient Boosting Machine) en p
 
 ---
 
-## 🚀 Features
+##  Features
 
 ### Algorithmes implémentés
 
-- ✅ **Classification binaire & multiclasse** - Support complet des deux
-- ✅ **Régression** - MSE, MAE, Huber, Quantile loss
-- ✅ **Croissance leaf-wise** - Optimisation clé de LightGBM
-- ✅ **GOSS** (Gradient-based One-Side Sampling) - Entraînement ~2-3x plus rapide
-- ✅ **Histogram Binning** - Recherche efficace de splits
-- ✅ **EFB** (Exclusive Feature Bundling) - Pour données haute dimension
-- ✅ **Early Stopping** - Prévient l'overfitting
-- ✅ **Régularisation L1/L2** - Contrôle de la complexité
-- ✅ **Feature Subsampling** - Sélection aléatoire de features
-- ✅ **Sample Weighting** - Support des poids d'échantillons
-- ✅ **API compatible sklearn** - Interface familière
+-  **Classification binaire & multiclasse** - Support complet des deux
+-  **Régression** - MSE, MAE, Huber, Quantile loss
+-  **Croissance leaf-wise** - Optimisation clé de LightGBM
+-  **GOSS** (Gradient-based One-Side Sampling) - Entraînement ~2-3x plus rapide
+-  **Histogram Binning** - Recherche efficace de splits
+-  **EFB** (Exclusive Feature Bundling) - Pour données haute dimension
+-  **Early Stopping** - Prévient l'overfitting
+-  **Régularisation L1/L2** - Contrôle de la complexité
+-  **Feature Subsampling** - Sélection aléatoire de features
+-  **Sample Weighting** - Support des poids d'échantillons
+-  **API compatible sklearn** - Interface familière
 
 ### Fonctions de perte disponibles
 
@@ -57,7 +57,7 @@ Une implémentation complète de LightGBM (Light Gradient Boosting Machine) en p
 
 ---
 
-## 📦 Installation
+##  Installation
 
 ### Depuis source
 
@@ -92,7 +92,7 @@ seaborn>=0.13.0
 
 ---
 
-## 🎯 Démarrage rapide
+##  Démarrage rapide
 
 ### Classification
 
@@ -156,12 +156,12 @@ clf.fit(X_train, y_train)
 
 ---
 
-## 📁 Structure du projet
+##  Structure du projet
 
 ```
 KDD_projet/
 │
-├── src/lightgbm/              # 📦 Package principal
+├── src/lightgbm/              # Package principal
 │   ├── __init__.py            # Exports publics
 │   ├── base.py                # Classes de base (BaseEstimator, BoosterParams, Callback)
 │   ├── lgbm_classifier.py     # LGBMClassifier
@@ -173,7 +173,7 @@ KDD_projet/
 │   ├── loss_functions.py      # Fonctions de perte + gradients/hessians
 │   └── utils.py               # Validation et utilitaires
 │
-├── tests/                     # ✅ Suite de tests
+├── tests/                     # Suite de tests
 │   ├── test_classifier.py     # Tests LGBMClassifier
 │   ├── test_regressor.py      # Tests LGBMRegressor
 │   ├── test_tree.py           # Tests DecisionTree
@@ -182,18 +182,18 @@ KDD_projet/
 │   ├── test_math_integrity.py # Validation mathématique
 │   └── test_logic_sanity.py   # Tests de sanité
 │
-├── benchmarks/                # 📊 Comparaisons de performance
+├── benchmarks/                # Comparaisons de performance
 │   └── benchmark_comparison.py # Compare avec sklearn GradientBoosting
 │
-├── examples/                  # 📖 Exemples d'utilisation
+├── examples/                  # Exemples d'utilisation
 │   ├── complete_testing.ipynb # Notebook complet avec exemples
 │   └── regression_pipeline.py # Pipeline de régression
 │
-├── docs/                      # 📚 Documentation
+├── docs/                      # Documentation
 │   ├── ARCHITECTURE.md        # Architecture détaillée
 │   └── IMPLEMENTATION_GUIDE.md # Guide d'utilisation
 │
-├── .github/workflows/         # 🔄 CI/CD
+├── .github/workflows/         # CI/CD
 │   └── ci.yml                 # GitHub Actions
 │
 ├── pyproject.toml             # Configuration du projet
@@ -204,7 +204,7 @@ KDD_projet/
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Fichiers principaux
 
@@ -267,7 +267,7 @@ from lightgbm.base import EarlyStoppingCallback
 
 ---
 
-## ✅ Tests et benchmarks
+## Tests et benchmarks
 
 ### Exécuter les tests
 
@@ -444,7 +444,7 @@ Consultez le notebook `examples/complete_testing.ipynb` pour des exemples comple
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ### Principes de conception
 
@@ -494,7 +494,7 @@ Pour plus de détails, voir [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
-## 🎛️ Hyperparamètres
+## Hyperparamètres
 
 | Paramètre | Default | Description |
 |-----------|---------|-------------|
@@ -515,7 +515,7 @@ Voir [IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) pour guide complet 
 
 ---
 
-## 🤝 Contributions
+## Contributions
 
 Les contributions sont les bienvenues ! Pour contribuer :
 
@@ -534,7 +534,7 @@ Les contributions sont les bienvenues ! Pour contribuer :
 
 ---
 
-## 👥 Auteurs
+## Auteurs
 
 - **Amine Essahraoui** 
 - **Mohammed Amine Zbida**
@@ -542,13 +542,13 @@ Les contributions sont les bienvenues ! Pour contribuer :
 
 ---
 
-## 📄 Licence
+## Licence
 
 Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour détails.
 
 ---
 
-## 📚 Références
+## Références
 
 ### Papiers scientifiques
 
@@ -573,4 +573,3 @@ Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour détail
 
 **Dernière mise à jour** : Décembre 2025  
 **Version** : 1.0.0  
-**Status** : ✅ Production Ready
