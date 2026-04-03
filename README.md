@@ -189,10 +189,11 @@ clf.fit(X_train, y_train)
 ---
 
 ## Project Structure
+```
 KDD_projet/
 │
 ├── src/lightgbm/              # Main package
-│   ├── init.py            # Public exports
+│   ├── __init__.py            # Public exports
 │   ├── base.py                # Base classes (BaseEstimator, BoosterParams, Callback)
 │   ├── lgbm_classifier.py     # LGBMClassifier
 │   ├── lgbm_regressor.py      # LGBMRegressor
@@ -227,6 +228,4 @@ KDD_projet/
 ├── requirements.txt
 ├── LICENSE
 └── README.md
-
-### From Source
-```bash
+```
