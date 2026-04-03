@@ -1,8 +1,8 @@
 # LightGBM From Scratch
 
-Une implémentation complète de LightGBM (Light Gradient Boosting Machine) en pur Python/NumPy, développée comme projet académique sur les algorithmes d'arbres de décision.
+A complete implementation of LightGBM (Light Gradient Boosting Machine) in pure Python/NumPy, developed as an academic project on decision tree algorithms.
 
-** Zéro dépendance sklearn** - Tous les algorithmes implémentés from scratch avec NumPy uniquement !
+**Zero sklearn dependency** — All algorithms implemented from scratch with NumPy only!
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![NumPy](https://img.shields.io/badge/NumPy-Only-green)](https://numpy.org/)
@@ -10,145 +10,177 @@ Une implémentation complète de LightGBM (Light Gradient Boosting Machine) en p
 
 ---
 
-## Table des matières
+## Table of Contents
 
 - [Features](#-features)
+- [Mathematical Foundations](#-mathematical-foundations)
 - [Installation](#-installation)
-- [Démarrage rapide](#-démarrage-rapide)
-- [Structure du projet](#-structure-du-projet)
+- [Quick Start](#-quick-start)
+- [Project Structure](#-project-structure)
 - [Documentation](#-documentation)
-- [Tests et benchmarks](#-tests-et-benchmarks)
-- [Exemples d'utilisation](#-exemples-dutilisation)
+- [Tests & Benchmarks](#-tests--benchmarks)
+- [Usage Examples](#-usage-examples)
 - [Architecture](#️-architecture)
 - [Contributions](#-contributions)
-- [Auteurs](#-auteurs)
-- [Licence](#-licence)
-- [Références](#-références)
+- [Authors](#-authors)
+- [License](#-license)
+- [References](#-references)
 
 ---
 
-##  Features
+## Features
 
-### Algorithmes implémentés
+### Implemented Algorithms
 
--  **Classification binaire & multiclasse** - Support complet des deux
--  **Régression** - MSE, MAE, Huber, Quantile loss
--  **Croissance leaf-wise** - Optimisation clé de LightGBM
--  **GOSS** (Gradient-based One-Side Sampling) - Entraînement ~2-3x plus rapide
--  **Histogram Binning** - Recherche efficace de splits
--  **EFB** (Exclusive Feature Bundling) - Pour données haute dimension
--  **Early Stopping** - Prévient l'overfitting
--  **Régularisation L1/L2** - Contrôle de la complexité
--  **Feature Subsampling** - Sélection aléatoire de features
--  **Sample Weighting** - Support des poids d'échantillons
--  **API compatible sklearn** - Interface familière
+- **Binary & Multiclass Classification** — Full support for both
+- **Regression** — MSE, MAE, Huber, Quantile loss
+- **Leaf-wise tree growth** — LightGBM's key optimization
+- **GOSS** (Gradient-based One-Side Sampling) — Training ~2-3x faster
+- **Histogram Binning** — Efficient split search
+- **EFB** (Exclusive Feature Bundling) — For high-dimensional data
+- **Early Stopping** — Prevents overfitting
+- **L1/L2 Regularization** — Complexity control
+- **Feature Subsampling** — Random feature selection
+- **Sample Weighting** — Sample weight support
+- **sklearn-compatible API** — Familiar interface
 
-### Fonctions de perte disponibles
+### Available Loss Functions
 
-**Régression** :
+**Regression:**
 - `MSELoss` : Mean Squared Error (L2)
 - `MAELoss` : Mean Absolute Error (L1)
-- `HuberLoss` : Robuste aux outliers
-- `QuantileLoss` : Régression quantile
+- `HuberLoss` : Robust to outliers
+- `QuantileLoss` : Quantile regression
 
-**Classification** :
-- `BinaryCrossEntropyLoss` : Classification binaire
-- `MultiClassCrossEntropyLoss` : Classification multiclasse
-
----
-
-##  Installation
-
-### Depuis source
-
-```bash
-# Cloner le dépôt
-git clone https://github.com/amineEssahraoui/KDD_projet.git
-cd KDD_projet
-
-# Installation en mode développement
-pip install -e .
-
-# Ou installer seulement les dépendances
-pip install -r requirements.txt
-```
-
-### Dépendances
-
-**Runtime** (obligatoire) :
-```
-numpy>=1.24.0
-```
-
-**Development** (optionnel, pour tests/benchmarks) :
-```
-pytest>=7.0.0
-pandas>=2.0.0
-scikit-learn>=1.2.0
-scipy>=1.11.0
-matplotlib>=3.8.0
-seaborn>=0.13.0
-```
+**Classification:**
+- `BinaryCrossEntropyLoss` : Binary classification
+- `MultiClassCrossEntropyLoss` : Multiclass classification
 
 ---
 
-##  Démarrage rapide
+## Mathematical Foundations
+
+### 1. Additive Model
+
+$$F_m(x) = F_{m-1}(x) + \eta \cdot h_m(x)$$
+
+- $F_{m-1}(x)$ — prediction from all previous trees
+- $h_m(x)$ — new decision tree trained on residuals
+- $\eta$ — learning rate $(0 < \eta \leq 1)$
+
+### 2. Objective Function (2nd-order Taylor Expansion)
+
+$$\mathcal{L}^{(m)} \approx \sum_{i=1}^{n} \left[ g_i \cdot h_m(x_i) + \frac{1}{2} h_i \cdot h_m(x_i)^2 \right] + \Omega(h_m)$$
+
+- $g_i = \frac{\partial \mathcal{L}}{\partial \hat{y}_i}$ — gradient (slope of the loss)
+- $h_i = \frac{\partial^2 \mathcal{L}}{\partial \hat{y}_i^2}$ — hessian (curvature of the loss)
+- $\Omega(h_m)$ — regularization term
+
+### 3. Optimal Leaf Weight
+
+$$w_j^* = -\frac{\sum_{i \in I_j} g_i}{\sum_{i \in I_j} h_i + \lambda}$$
+
+- $I_j$ — set of samples in leaf $j$
+- $\lambda$ — L2 regularization (`lambda_l2`)
+
+### 4. Regularized Split Gain
+
+$$\text{Gain} = \frac{1}{2} \left[ \frac{G_L^2}{H_L + \lambda} + \frac{G_R^2}{H_R + \lambda} - \frac{(G_L + G_R)^2}{H_L + H_R + \lambda} \right] - \gamma$$
+
+- $G_L, G_R$ — gradient sums in left/right children
+- $H_L, H_R$ — hessian sums in left/right children
+- $\gamma$ — minimum gain threshold (`min_gain_to_split`)
+
+### 5. Final Prediction
+
+$$\hat{y} = F_0 + \eta \sum_{m=1}^{M} h_m(x)$$
+
+### 6. Binary Classification — Sigmoid
+
+$$p = \sigma(F(x)) = \frac{1}{1 + e^{-F(x)}}$$
+
+| | Formula |
+|---|---|
+| Gradient | $g_i = p_i - y_i$ |
+| Hessian | $h_i = p_i(1 - p_i)$ |
+
+### 7. Multiclass — Softmax
+
+$$p_k(x) = \frac{e^{F_k(x)}}{\sum_{j=1}^{K} e^{F_j(x)}}$$
+
+| | Formula |
+|---|---|
+| Gradient | $g_{ik} = p_{ik} - y_{ik}$ |
+| Hessian (diagonal approx.) | $h_{ik} \approx p_{ik}(1 - p_{ik})$ |
+
+### 8. Histogram Binning — Complexity
+
+| Operation | Exact Greedy | Histogram-Based |
+|---|---|---|
+| Split finding per node | $O(N \cdot D)$ | $O(B \cdot D)$ |
+| Memory | $O(N \cdot D)$ | $O(B \cdot D)$ |
+| Typical magnitude | $N = 10^6$ | $B = 255$ |
+
+### 9. Loss Functions Reference
+
+| Loss | $\mathcal{L}(y, \hat{y})$ | Gradient $g_i$ | Hessian $h_i$ |
+|---|---|---|---|
+| MSE | $\frac{1}{2}(y-\hat{y})^2$ | $\hat{y}-y$ | $1$ |
+| MAE | $|y-\hat{y}|$ | $\text{sign}(\hat{y}-y)$ | $1$ (approx.) |
+| Huber | $\frac{1}{2}r^2$ or $\delta|r|-\frac{1}{2}\delta^2$ | $r$ or $\delta\cdot\text{sign}(r)$ | $1$ or $\delta/|r|$ |
+| Quantile | $q(y-\hat{y})$ or $(1-q)(\hat{y}-y)$ | $-q$ or $1-q$ | $1$ (approx.) |
+| Binary CE | $-[y\log p+(1-y)\log(1-p)]$ | $p_i-y_i$ | $p_i(1-p_i)$ |
+| Multiclass CE | $-\sum_k y_k\log(p_k)$ | $p_{ik}-y_{ik}$ | $p_{ik}(1-p_{ik})$ |
+
+---
+
+---
+
+## Quick Start
 
 ### Classification
-
 ```python
 from lightgbm import LGBMClassifier
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
-# Générer données
 X, y = make_classification(n_samples=1000, n_features=20, random_state=42)
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 
-# Entraîner modèle
 clf = LGBMClassifier(num_iterations=100, learning_rate=0.1, max_depth=6)
 clf.fit(X_train, y_train)
 
-# Prédictions
 predictions = clf.predict(X_test)
 probabilities = clf.predict_proba(X_test)
-
 print(f"Accuracy: {(predictions == y_test).mean():.4f}")
 ```
 
-### Régression
-
+### Regression
 ```python
 from lightgbm import LGBMRegressor
 from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
 
-# Générer données
 X, y = make_regression(n_samples=1000, n_features=20, random_state=42)
 X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
 
-# Entraîner modèle
 reg = LGBMRegressor(num_iterations=100, learning_rate=0.1, max_depth=6)
 reg.fit(X_train, y_train)
-
-# Prédictions
 predictions = reg.predict(X_test)
 ```
 
 ### Early Stopping
-
 ```python
 clf = LGBMClassifier(num_iterations=1000, early_stopping_rounds=10)
 clf.fit(X_train, y_train, eval_set=(X_val, y_val))
-print(f"Arrêté à l'itération: {clf.n_iter_}")
+print(f"Stopped at iteration: {clf.n_iter_}")
 ```
 
-### GOSS (accélération)
-
+### GOSS (Acceleration)
 ```python
 clf = LGBMClassifier(
-    num_iterations=100, 
-    enable_goss=True, 
+    num_iterations=100,
+    enable_goss=True,
     goss_top_rate=0.2
 )
 clf.fit(X_train, y_train)
@@ -156,420 +188,45 @@ clf.fit(X_train, y_train)
 
 ---
 
-##  Structure du projet
-
-```
+## Project Structure
 KDD_projet/
 │
-├── src/lightgbm/              # Package principal
-│   ├── __init__.py            # Exports publics
-│   ├── base.py                # Classes de base (BaseEstimator, BoosterParams, Callback)
+├── src/lightgbm/              # Main package
+│   ├── init.py            # Public exports
+│   ├── base.py                # Base classes (BaseEstimator, BoosterParams, Callback)
 │   ├── lgbm_classifier.py     # LGBMClassifier
 │   ├── lgbm_regressor.py      # LGBMRegressor
-│   ├── tree.py                # DecisionTree avec croissance leaf-wise
-│   ├── histogram.py           # Histogram binning (intégré dans tree.py)
-│   ├── goss.py                # GOSS sampling (classe GOSS, apply_goss)
-│   ├── efb.py                 # Exclusive Feature Bundling (FeatureBundler, bundle_features)
-│   ├── loss_functions.py      # Fonctions de perte + gradients/hessians
-│   └── utils.py               # Validation et utilitaires
+│   ├── tree.py                # DecisionTree with leaf-wise growth
+│   ├── histogram.py           # Histogram binning (integrated in tree.py)
+│   ├── goss.py                # GOSS sampling (GOSS class, apply_goss)
+│   ├── efb.py                 # Exclusive Feature Bundling
+│   ├── loss_functions.py      # Loss functions + gradients/hessians
+│   └── utils.py               # Validation and utilities
 │
-├── tests/                     # Suite de tests
-│   ├── test_classifier.py     # Tests LGBMClassifier
-│   ├── test_regressor.py      # Tests LGBMRegressor
-│   ├── test_tree.py           # Tests DecisionTree
-│   ├── test_goss.py           # Tests GOSS
-│   ├── test_utils.py          # Tests utilitaires
-│   ├── test_math_integrity.py # Validation mathématique
-│   └── test_logic_sanity.py   # Tests de sanité
+├── tests/                     # Test suite
+│   ├── test_classifier.py
+│   ├── test_regressor.py
+│   ├── test_tree.py
+│   ├── test_goss.py
+│   ├── test_utils.py
+│   ├── test_math_integrity.py
+│   └── test_logic_sanity.py
 │
-├── benchmarks/                # Comparaisons de performance
-│   └── benchmark_comparison.py # Compare avec sklearn GradientBoosting
+├── benchmarks/
+│   └── benchmark_comparison.py
 │
-├── examples/                  # Exemples d'utilisation
-│   ├── complete_testing.ipynb # Notebook complet avec exemples
-│   └── regression_pipeline.py # Pipeline de régression
+├── examples/
+│   ├── complete_testing.ipynb
+│   └── regression_pipeline.py
 │
-├── docs/                      # Documentation
-│   ├── ARCHITECTURE.md        # Architecture détaillée
-│   └── IMPLEMENTATION_GUIDE.md # Guide d'utilisation
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── IMPLEMENTATION_GUIDE.md
 │
-├── .github/workflows/         # CI/CD
-│   └── ci.yml                 # GitHub Actions
-│
-├── pyproject.toml             # Configuration du projet
-├── requirements.txt           # Dépendances
-├── LICENSE                    # Licence MIT
-└── README.md                  # Ce fichier
-```
+├── pyproject.toml
+├── requirements.txt
+├── LICENSE
+└── README.md
 
----
-
-## Documentation
-
-### Fichiers principaux
-
-#### Package source (`src/lightgbm/`)
-
-| Fichier | Description | Classes/Fonctions principales |
-|---------|-------------|-------------------------------|
-| `__init__.py` | Point d'entrée du package | Exports publics |
-| `base.py` | Classes abstraites de base | `BaseEstimator`, `BoosterParams`, `Callback`, `EarlyStoppingCallback` |
-| `lgbm_classifier.py` | Classificateur gradient boosting | `LGBMClassifier` |
-| `lgbm_regressor.py` | Régresseur gradient boosting | `LGBMRegressor` |
-| `tree.py` | Arbre de décision | `DecisionTree`, `TreeNode`, `SplitInfo` |
-| `loss_functions.py` | Fonctions de perte | `MSELoss`, `MAELoss`, `HuberLoss`, `QuantileLoss`, `BinaryCrossEntropyLoss`, `MultiClassCrossEntropyLoss`, `get_loss_function()` |
-| `goss.py` | GOSS sampling | `GOSS`, `apply_goss()` |
-| `efb.py` | Feature bundling | `FeatureBundler`, `bundle_features()` |
-| `utils.py` | Utilitaires | `check_array()`, `check_X_y()`, `train_test_split()`, `accuracy_score()`, `mean_squared_error()`, etc. |
-
-### Imports courants
-
-```python
-# Estimateurs
-from lightgbm import LGBMClassifier, LGBMRegressor
-
-# Arbres et structures
-from lightgbm import DecisionTree, TreeNode, SplitInfo
-
-# Fonctions de perte
-from lightgbm.loss_functions import (
-    MSELoss, MAELoss, HuberLoss, QuantileLoss,
-    BinaryCrossEntropyLoss, MultiClassCrossEntropyLoss,
-    get_loss_function
-)
-
-# Features avancées
-from lightgbm import GOSS, FeatureBundler
-
-# Utilitaires
-from lightgbm.utils import (
-    train_test_split, accuracy_score, mean_squared_error,
-    mean_absolute_error, r2_score
-)
-
-# Callbacks
-from lightgbm.base import EarlyStoppingCallback
-```
-
-### Guides détaillés
-
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** : Architecture complète du système
-  - Vue d'ensemble des modules
-  - Diagrammes de classes et séquences
-  - Formules mathématiques
-  - Flux de données
-
-- **[IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md)** : Guide d'utilisation pratique
-  - Exemples détaillés
-  - Tuning des hyperparamètres
-  - Features avancées (GOSS, EFB, callbacks)
-  - Troubleshooting
-
----
-
-## Tests et benchmarks
-
-### Exécuter les tests
-
+### From Source
 ```bash
-# Tous les tests
-python -m pytest tests/ -v
-
-# Tests spécifiques
-python -m pytest tests/test_classifier.py -v
-python -m pytest tests/test_regressor.py -v
-
-# Avec couverture
-python -m pytest tests/ --cov=src/lightgbm --cov-report=html
-```
-
-### Tests disponibles
-
-| Fichier de test | Description |
-|-----------------|-------------|
-| `test_classifier.py` | Classification binaire et multiclasse |
-| `test_regressor.py` | Régression avec différentes loss |
-| `test_tree.py` | Arbres de décision leaf-wise |
-| `test_goss.py` | GOSS sampling |
-| `test_utils.py` | Fonctions utilitaires |
-| `test_math_integrity.py` | Validation mathématique (gradients, hessians, gains) |
-| `test_logic_sanity.py` | Tests de sanité (overfitting, convergence) |
-
-### Benchmarks
-
-```bash
-# Comparer avec sklearn
-python benchmarks/benchmark_comparison.py
-```
-
-**Résultats typiques** (n=2000, 50 arbres) :
-
-| Tâche | Notre LightGBM | sklearn | Rapport vitesse |
-|-------|---------------|---------|-----------------|
-| Classification binaire | 89.8% acc | 89.6% acc | ~2x plus lent |
-| Régression | 90.9% R² | 89.1% R² | ~2x plus lent |
-| Multiclasse (3 classes) | 95.0% acc | - | Fonctionnel ! |
-
-Notre implémentation atteint une précision comparable à sklearn tout en étant seulement ~2x plus lente (Python pur vs Cython).
-
----
-
-## 📖 Exemples d'utilisation
-
-### 1. Régression basique
-
-```python
-from lightgbm import LGBMRegressor
-import numpy as np
-
-# Données
-X = np.random.randn(1000, 10)
-y = 3*X[:, 0] + 2*X[:, 1] + np.random.randn(1000)*0.5
-
-# Modèle
-model = LGBMRegressor(
-    num_iterations=100,
-    learning_rate=0.1,
-    max_depth=6,
-    random_state=42
-)
-
-model.fit(X, y)
-predictions = model.predict(X)
-
-print(f"MSE: {np.mean((y - predictions)**2):.4f}")
-```
-
-### 2. Classification avec validation
-
-```python
-from lightgbm import LGBMClassifier
-from lightgbm.utils import train_test_split, accuracy_score
-import numpy as np
-
-# Données
-X = np.random.randn(1000, 15)
-y = (X[:, 0] + X[:, 1] > 0).astype(int)
-
-# Split
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
-
-# Modèle
-clf = LGBMClassifier(num_iterations=100, random_state=42)
-clf.fit(X_train, y_train)
-
-# Évaluation
-y_pred = clf.predict(X_test)
-acc = accuracy_score(y_test, y_pred)
-print(f"Accuracy: {acc:.4f}")
-```
-
-### 3. Fonction de perte personnalisée (Huber)
-
-```python
-from lightgbm import LGBMRegressor
-from lightgbm.loss_functions import HuberLoss
-import numpy as np
-
-# Données avec outliers
-X = np.random.randn(500, 5)
-y = X[:, 0] + 2*X[:, 1] + np.random.randn(500)*0.5
-y[::50] += 10  # Ajouter outliers
-
-# Huber loss (robuste)
-model = LGBMRegressor(
-    objective=HuberLoss(delta=1.0),
-    num_iterations=100,
-    learning_rate=0.1
-)
-model.fit(X, y)
-```
-
-### 4. GOSS pour grandes données
-
-```python
-from lightgbm import LGBMRegressor
-import numpy as np
-
-# Grandes données
-X = np.random.randn(50000, 30)
-y = X[:, 0] + 2*X[:, 1] + np.random.randn(50000)*0.5
-
-# Avec GOSS (plus rapide)
-model = LGBMRegressor(
-    num_iterations=100,
-    enable_goss=True,
-    goss_top_rate=0.2,
-    goss_other_rate=0.1,
-    use_histogram=True,
-    max_bins=128
-)
-model.fit(X, y)
-```
-
-### 5. Early stopping avec validation
-
-```python
-from lightgbm import LGBMClassifier
-from lightgbm.utils import train_test_split
-import numpy as np
-
-X = np.random.randn(1000, 10)
-y = (X[:, 0] + X[:, 1] > 0).astype(int)
-
-X_train, X_val, y_train, y_val = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
-
-clf = LGBMClassifier(
-    num_iterations=1000,
-    early_stopping_rounds=20,
-    learning_rate=0.1,
-    verbose=1
-)
-
-clf.fit(X_train, y_train, eval_set=(X_val, y_val))
-print(f"Arrêté à: {clf.n_iter_}")
-```
-
-### Plus d'exemples
-
-Consultez le notebook `examples/complete_testing.ipynb` pour des exemples complets avec :
-- Régression California Housing
-- Régression avec NaN et features sparse
-- Classification crédit avec classes déséquilibrées
-- Comparaisons de performances
-
----
-
-## Architecture
-
-### Principes de conception
-
-Notre implémentation suit fidèlement le papier LightGBM original avec ces différences clés par rapport au gradient boosting standard :
-
-1. **Croissance leaf-wise** vs level-wise
-   - Sélectionne et split la feuille avec le gain maximal
-   - Plus efficace que croissance par niveau (XGBoost)
-
-2. **GOSS** (Gradient-based One-Side Sampling)
-   - Garde tous les échantillons avec grands gradients
-   - Échantillonne les petits gradients
-   - Réduit données de ~70% sans perte de précision
-
-3. **EFB** (Exclusive Feature Bundling)
-   - Combine features mutuellement exclusives
-   - Réduit dimensionnalité pour données sparse
-
-4. **Histogram Binning**
-   - Discrétise features continues en bins
-   - Complexité O(max_bins) au lieu de O(n_samples)
-
-### Formules mathématiques clés
-
-**Gain de split** :
-```
-Gain = [G²_L/(H_L+λ) + G²_R/(H_R+λ) - G²/(H+λ)] / 2 - γ
-
-où:
-  G = Σ gradients
-  H = Σ hessians
-  λ = lambda_l2 (régularisation L2)
-  γ = min_gain_to_split
-```
-
-**Valeur de feuille optimale** :
-```
-w* = -G / (H + λ)
-```
-
-**Prédiction finale** :
-```
-ŷ = init_prediction + learning_rate × Σ tree_k(x)
-```
-
-Pour plus de détails, voir [ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
----
-
-## Hyperparamètres
-
-| Paramètre | Default | Description |
-|-----------|---------|-------------|
-| `num_iterations` / `n_estimators` | 100 | Nombre d'arbres |
-| `learning_rate` | 0.1 | Taux d'apprentissage |
-| `max_depth` | -1 | Profondeur max (-1 = illimité) |
-| `num_leaves` | 31 | Nombre max de feuilles par arbre |
-| `min_data_in_leaf` / `min_samples_leaf` | 20 | Échantillons min par feuille |
-| `lambda_l1` / `reg_alpha` | 0.0 | Régularisation L1 |
-| `lambda_l2` / `reg_lambda` | 0.0 | Régularisation L2 |
-| `feature_fraction` | 1.0 | Fraction de features par arbre |
-| `bagging_fraction` | 1.0 | Fraction d'échantillons par arbre |
-| `enable_goss` | False | Activer GOSS |
-| `use_histogram` | False | Activer histogram binning |
-| `early_stopping_rounds` | None | Patience pour early stopping |
-
-Voir [IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) pour guide complet de tuning.
-
----
-
-## Contributions
-
-Les contributions sont les bienvenues ! Pour contribuer :
-
-1. Fork le dépôt
-2. Créer une branche feature (`git checkout -b feature/amazing-feature`)
-3. Commit les changements (`git commit -m 'Add amazing feature'`)
-4. Push vers la branche (`git push origin feature/amazing-feature`)
-5. Ouvrir une Pull Request
-
-### Guidelines
-
-- Suivre le style de code existant
-- Ajouter des tests pour nouvelles features
-- Mettre à jour la documentation
-- S'assurer que tous les tests passent
-
----
-
-## Auteurs
-
-- **Amine Essahraoui** 
-- **Mohammed Amine Zbida**
-- **Abderrarak Khall**
-
----
-
-## Licence
-
-Ce projet est sous licence MIT - voir le fichier [LICENSE](LICENSE) pour détails.
-
----
-
-## Références
-
-### Papiers scientifiques
-
-1. **Ke, G., et al.** (2017). "LightGBM: A Highly Efficient Gradient Boosting Decision Tree." 
-   *NeurIPS 2017*. 
-   [Lien](https://papers.nips.cc/paper/6907-lightgbm-a-highly-efficient-gradient-boosting-decision-tree)
-
-2. **Chen, T., & Guestrin, C.** (2016). "XGBoost: A Scalable Tree Boosting System." 
-   *KDD 2016*. 
-   [Lien](https://arxiv.org/abs/1603.02754)
-
-3. **Friedman, J. H.** (2001). "Greedy function approximation: A gradient boosting machine." 
-   *Annals of statistics*.
-
-### Ressources en ligne
-
-- [LightGBM Documentation officielle](https://lightgbm.readthedocs.io/)
-- [Gradient Boosting Explained](https://explained.ai/gradient-boosting/)
-- [Understanding LightGBM Parameters](https://lightgbm.readthedocs.io/en/latest/Parameters.html)
-
----
-
-**Dernière mise à jour** : Décembre 2025  
-**Version** : 1.0.0  
